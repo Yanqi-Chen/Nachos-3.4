@@ -14,7 +14,7 @@
 #include "elevatortest.h"
 
 // testnum is set in main.cc
-int testnum = 1;
+int testnum = 2;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -56,7 +56,24 @@ ThreadTest1()
     t->Fork(SimpleThread, (void*)1);
     SimpleThread(0);
 }
+/* lab1 begin */
+//----------------------------------------------------------------------
+// ThreadTest2
+// 	New 128 threads.
+//----------------------------------------------------------------------
 
+void
+ThreadTest2()
+{
+    DEBUG('t', "Entering ThreadTest2");
+    for (int i = 0; i < 127; ++i)
+    {
+        Thread *t = new Thread("forked thread");
+        if (i == 126)
+            PrintThreadStates();
+    }
+}
+/* lab1 end */
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -68,6 +85,10 @@ ThreadTest()
     switch (testnum) {
     case 1:
 	ThreadTest1();
+    break;
+    case 2:
+    ThreadTest2();
+    break;
 	break;
     default:
 	printf("No test specified.\n");

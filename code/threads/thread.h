@@ -101,8 +101,10 @@ class Thread {
     void setStatus(ThreadStatus st);
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
-	// function added by myself
-	unsigned long int getTid() { return (tid); }
+	/* lab1 begin */
+	int getUid() { return (uid); }
+	int getTid() { return (tid); }
+	/* lab1 end */
 
   private:
     // some of the private data for this class is listed above
@@ -117,9 +119,10 @@ class Thread {
     					// Allocate a stack for thread.
 					// Used internally by Fork()
 
-    // data structure added by myself
+    /* lab1 begin */
 	int tid;
 	int uid;
+	/* lab1 end */
 
 #ifdef USER_PROGRAM
 // A thread running a user program actually has *two* sets of CPU registers -- 
@@ -136,12 +139,14 @@ class Thread {
 #endif
 };
 
+/* lab1 begin */
 struct ThreadInfo {
 	Thread* threadPointer;
-  int uid;
+  	int uid;
 	char* name;
 	char* status;
 };
+/* lab1 end */
 
 // Magical machine-dependent routines, defined in switch.s
 
