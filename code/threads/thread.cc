@@ -42,6 +42,7 @@ Thread::Thread(char* threadName)
         if (tInfo[cnt].threadPointer == NULL)
 		{
 			tInfo[cnt].threadPointer = this;
+            tInfo[cnt].uid = UID;
 			tInfo[cnt].name = threadName;
             tInfo[cnt].status = tStatus[JUST_CREATED];
 			full = false;
@@ -51,6 +52,7 @@ Thread::Thread(char* threadName)
 	ASSERT(!full);
     name = threadName;
     tid = cnt;
+    uid = UID;
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;

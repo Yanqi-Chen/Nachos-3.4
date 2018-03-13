@@ -138,6 +138,7 @@ class Thread {
 
 struct ThreadInfo {
 	Thread* threadPointer;
+  int uid;
 	char* name;
 	char* status;
 };

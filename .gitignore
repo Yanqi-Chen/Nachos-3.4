@@ -28,6 +28,7 @@
 *.lib
 
 # Executables
+nachos
 *.exe
 *.out
 *.app

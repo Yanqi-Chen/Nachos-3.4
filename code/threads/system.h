@@ -31,8 +31,12 @@ extern Scheduler *scheduler;			// the ready list
 extern Interrupt *interrupt;			// interrupt status
 extern Statistics *stats;			// performance metrics
 extern Timer *timer;				// the hardware alarm clock
+
+/* lab1 begin */
 extern ThreadInfo tInfo[MAX_THREADS];
 extern char tStatus[4][13];
+extern int UID;
+/* lab1 end */
 
 #ifdef USER_PROGRAM
 #include "machine.h"

@@ -8,7 +8,7 @@
 #include "copyright.h"
 #include "system.h"
 #include <string.h>
-#define MAX_THREADS 128
+
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
 
@@ -19,9 +19,12 @@ Interrupt *interrupt;			// interrupt status
 Statistics *stats;			// performance metrics
 Timer *timer;				// the hardware timer device,
 					// for invoking context switches
-
+/* lab1 begin */
 ThreadInfo tInfo[MAX_THREADS];
 char tStatus[4][13] = { "JUST_CREATED", "RUNNING", "READY", "BLOCKED" };
+#define MAX_THREADS 128
+int UID = 1000;
+/* lab1 end */
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -200,18 +203,19 @@ Cleanup()
     
     Exit(0);
 }
-
+/* lab1 begin */
 void PrintThreadStates()
 {
     putchar('\n');
-    printf("TID  NAME          STATUS\n");
+    printf("TID  UID  NAME          STATUS\n");
     for (int i = 0; i < MAX_THREADS; ++i)
     {
         if (tInfo[i].threadPointer != NULL)
         {
-            printf("%-3d  %-14s%s\n", i, tInfo[i].name, tInfo[i].status);           
+            printf("%-5d%-5d%-14s%s\n", i, tInfo[i].uid, tInfo[i].name, tInfo[i].status);           
         }
     }
     putchar('\n');
 }
+/* lab1 end */
 
