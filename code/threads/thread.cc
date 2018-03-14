@@ -39,7 +39,7 @@ Thread::Thread(char* threadName)
 {
     /* lab1 begin */
     cntThreads++;
-    ASSERT(cntThreads <= 128);
+    ASSERT(cntThreads <= MAX_THREADS);
     int cnt = 0;
 	for (; cnt < MAX_THREADS; cnt++)
     {
