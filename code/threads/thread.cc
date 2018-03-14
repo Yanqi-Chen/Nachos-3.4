@@ -24,6 +24,9 @@
 					// execution stack, for detecting 
 					// stack overflows
 
+/* lab1 begin */
+int Thread::cntThreads = 0;
+/* lab1 end */
 //----------------------------------------------------------------------
 // Thread::Thread
 // 	Initialize a thread control block, so that we can then call
@@ -34,9 +37,10 @@
 
 Thread::Thread(char* threadName)
 {
+    /* lab1 begin */
+    cntThreads++;
+    ASSERT(cntThreads <= 128);
     int cnt = 0;
-	// whether number of threads reach the uplimit
-	bool full = true;
 	for (; cnt < MAX_THREADS; cnt++)
     {
         if (tInfo[cnt].threadPointer == NULL)
@@ -45,14 +49,13 @@ Thread::Thread(char* threadName)
             tInfo[cnt].uid = UID;
 			tInfo[cnt].name = threadName;
             tInfo[cnt].status = tStatus[JUST_CREATED];
-			full = false;
 			break;
 		}
     }
-	ASSERT(!full);
     name = threadName;
     tid = cnt;
     uid = UID;
+    /* lab1 end */
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -76,9 +79,13 @@ Thread::Thread(char* threadName)
 Thread::~Thread()
 {
     DEBUG('t', "Deleting thread tid = %d \"%s\"\n", tid, name);
-
+    /* lab1 begin */
+    cntThreads--;
+    /* lab1 end */
     ASSERT(this != currentThread);
+    /* lab1 begin */
 	tInfo[tid].threadPointer = NULL;
+    /* lab1 end */
     if (stack != NULL)
 	DeallocBoundedArray((char *) stack, StackSize * sizeof(int));
 }

@@ -14,7 +14,7 @@
 #include "elevatortest.h"
 
 // testnum is set in main.cc
-int testnum = 2;
+int testnum = 1;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -82,14 +82,18 @@ ThreadTest2()
 void
 ThreadTest()
 {
-    switch (testnum) {
+    switch (testnum) 
+    {
     case 1:
-	ThreadTest1();
-    break;
+	{
+        ThreadTest1();
+        break;
+    }
     case 2:
-    ThreadTest2();
-    break;
-	break;
+    {
+        ThreadTest2();
+        break;
+    }
     default:
 	printf("No test specified.\n");
 	break;

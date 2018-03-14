@@ -102,6 +102,7 @@ class Thread {
     char* getName() { return (name); }
     void Print() { printf("%s, ", name); }
 	/* lab1 begin */
+	static int cntThreads;
 	int getUid() { return (uid); }
 	int getTid() { return (tid); }
 	/* lab1 end */
