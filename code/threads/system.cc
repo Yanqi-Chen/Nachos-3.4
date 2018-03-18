@@ -69,6 +69,10 @@ TimerInterruptHandler(int dummy)
 {
     if (interrupt->getStatus() != IdleMode)
 	interrupt->YieldOnReturn();
+    /* lab2 begin */
+    currentThread->incRuntime();
+    tInfo[currentThread->getTid()].runtime++;
+    /* lab2 end */
 }
 
 //----------------------------------------------------------------------
@@ -142,8 +146,9 @@ Initialize(int argc, char **argv)
     stats = new Statistics();			// collect statistics
     interrupt = new Interrupt;			// start up interrupt handling
     scheduler = new Scheduler();		// initialize the ready queue
-    if (randomYield)				// start the timer (if needed)
-	timer = new Timer(TimerInterruptHandler, 0, randomYield);
+    /* lab2 begin */
+	timer = new Timer(TimerInterruptHandler, 0, FALSE);   // start the timer (if needed)
+    /* lab2 end */
 
     threadToBeDestroyed = NULL;
 
@@ -207,12 +212,13 @@ Cleanup()
 void PrintThreadStates()
 {
     putchar('\n');
-    printf("TID  UID  NAME          STATUS\n");
+    printf("TID  UID  NAME            STATUS      RUNTIME\n");
     for (int i = 0; i < MAX_THREADS; ++i)
     {
         if (tInfo[i].threadPointer != NULL)
         {
-            printf("%-5d%-5d%-14s%s\n", i, tInfo[i].uid, tInfo[i].name, tInfo[i].status);           
+            printf("%-5d%-5d%-16s%-14s%d\n", i, tInfo[i].uid, tInfo[i].name, tInfo[i].status, 
+                tInfo[i].runtime);           
         }
     }
     putchar('\n');

@@ -42,20 +42,17 @@ Thread::Thread(char* threadName)
     ASSERT(cntThreads <= MAX_THREADS);
     int cnt = 0;
 	for (; cnt < MAX_THREADS; cnt++)
-    {
         if (tInfo[cnt].threadPointer == NULL)
-		{
-			tInfo[cnt].threadPointer = this;
-            tInfo[cnt].uid = UID;
-			tInfo[cnt].name = threadName;
-            tInfo[cnt].status = tStatus[JUST_CREATED];
 			break;
-		}
-    }
-    name = threadName;
+    tInfo[cnt].threadPointer = this;
+    tInfo[cnt].uid = uid = UID;
+	tInfo[cnt].name = name = threadName;
+    tInfo[cnt].status = tStatus[JUST_CREATED];
     tid = cnt;
-    uid = UID;
     /* lab1 end */
+    /* lab2 begin */
+	tInfo[cnt].runtime = runtime = 0;
+	/* lab2 end */
     stackTop = NULL;
     stack = NULL;
     status = JUST_CREATED;
@@ -208,9 +205,10 @@ Thread::Yield ()
     DEBUG('t', "Yielding thread tid = %d \"%s\"\n", getTid(), getName());
     
     nextThread = scheduler->FindNextToRun();
-    if (nextThread != NULL) {
-	scheduler->ReadyToRun(this);
-	scheduler->Run(nextThread);
+    if (nextThread != NULL) 
+    {
+	    scheduler->ReadyToRun(this);
+	    scheduler->Run(nextThread);
     }
     (void) interrupt->SetLevel(oldLevel);
 }
@@ -244,6 +242,7 @@ Thread::Sleep ()
     
     DEBUG('t', "Sleeping thread tid = %d \"%s\"\n", getTid(), getName());
 
+    tInfo[tid].status = tStatus[BLOCKED];
     status = BLOCKED;
     while ((nextThread = scheduler->FindNextToRun()) == NULL)
 	interrupt->Idle();	// no one to run, wait for an interrupt

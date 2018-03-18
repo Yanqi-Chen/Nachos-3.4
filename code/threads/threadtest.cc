@@ -14,7 +14,7 @@
 #include "elevatortest.h"
 
 // testnum is set in main.cc
-int testnum = 1;
+int testnum = 3;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -30,7 +30,7 @@ SimpleThread(int which)
 {
     int num;
     
-    for (num = 0; num < 5; num++) 
+    for (num = 0; num < 10; num++) 
     {
 	    printf("*** thread %d looped %d times\n", which, num);
         /* lab1 begin */
@@ -49,7 +49,7 @@ SimpleThread(int which)
 void
 ThreadTest1()
 {
-    DEBUG('t', "Entering ThreadTest1");
+    DEBUG('t', "Entering ThreadTest1\n");
 
     Thread *t = new Thread("forked thread");
 
@@ -65,7 +65,7 @@ ThreadTest1()
 void
 ThreadTest2()
 {
-    DEBUG('t', "Entering ThreadTest2");
+    DEBUG('t', "Entering ThreadTest2\n");
     for (int i = 0; i < 127; ++i)
     {
         Thread *t = new Thread("forked thread");
@@ -74,6 +74,23 @@ ThreadTest2()
     }
 }
 /* lab1 end */
+/* lab2 begin */
+//----------------------------------------------------------------------
+// ThreadTest3
+//  2 threads.
+//----------------------------------------------------------------------
+
+void
+ThreadTest3()
+{
+    DEBUG('t', "Entering ThreadTest3\n");
+    Thread *t1 = new Thread("forked thread 1");
+    t1->Fork(SimpleThread, (void*)1);
+    Thread *t2 = new Thread("forked thread 2");
+    t2->Fork(SimpleThread, (void*)2);
+    SimpleThread(0);
+}
+/* lab2 end */
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -86,12 +103,17 @@ ThreadTest()
     {
     case 1:
 	{
-        ThreadTest1();
+        ThreadTest3();
         break;
     }
     case 2:
     {
         ThreadTest2();
+        break;
+    }
+    case 3:
+    {
+        ThreadTest3();
         break;
     }
     default:
