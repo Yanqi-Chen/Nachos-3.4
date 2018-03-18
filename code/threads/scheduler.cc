@@ -53,11 +53,22 @@ Scheduler::~Scheduler()
 void
 Scheduler::ReadyToRun (Thread *thread)
 {
-    DEBUG('t', "Putting thread tid = %d %s on ready list.\n", thread->getTid(),
+    DEBUG('t', "Putting thread tid = %d \"%s\" on ready list.\n", thread->getTid(),
       thread->getName());
 
     thread->setStatus(READY);
-    readyList->Append((void *)thread);
+    /* lab2 begin */
+    readyList->SortedInsert((void *)thread, thread->getPriority());
+    // preempt
+    if(thread->getPriority() < currentThread->getPriority())
+    {
+        DEBUG('t', "New thread tid = %d \"%s\" with priority %d preempt "
+            "old thread tid = %d \"%s\" with priority %d.\n", thread->getTid(),
+            thread->getName(), -thread->getPriority(), currentThread->getTid(),
+            currentThread->getName(), -currentThread->getPriority());
+        currentThread->Yield();
+    }
+    /* lab2 end */
 }
 
 //----------------------------------------------------------------------
@@ -71,7 +82,10 @@ Scheduler::ReadyToRun (Thread *thread)
 Thread *
 Scheduler::FindNextToRun ()
 {
-    return (Thread *)readyList->Remove();
+    /* lab2 begin */
+    int pr;
+    return (Thread *)readyList->SortedRemove(&pr);
+    /* lab2 end */
 }
 
 //----------------------------------------------------------------------
@@ -92,7 +106,6 @@ void
 Scheduler::Run (Thread *nextThread)
 {
     Thread *oldThread = currentThread;
-    
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (currentThread->space != NULL) {	// if this thread is a user program,
         currentThread->SaveUserState(); // save the user's CPU registers
@@ -109,14 +122,11 @@ Scheduler::Run (Thread *nextThread)
     DEBUG('t', "Switching from thread tid = %d \"%s\" to thread tid = %d \"%s\""
       "\n", oldThread->getTid(), oldThread->getName(), nextThread->getTid(),
       nextThread->getName());
-    
     // This is a machine-dependent assembly language routine defined 
     // in switch.s.  You may have to think
     // a bit to figure out what happens after this, both from the point
     // of view of the thread and from the perspective of the "outside world".
-
     SWITCH(oldThread, nextThread);
-    
     DEBUG('t', "Now in thread tid = %d \"%s\"\n", currentThread->getTid(),
       currentThread->getName());
 

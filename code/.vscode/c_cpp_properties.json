@@ -34,7 +34,9 @@
                 "/usr/lib/gcc/i686-linux-gnu/5/include-fixed",
                 "/usr/include/i386-linux-gnu",
                 "/usr/include",
-                "${workspaceRoot}"
+                "${workspaceRoot}",
+                "${workspaceRoot}/machine",
+                "${workspaceRoot}/threads"
             ],
             "defines": [],
             "intelliSenseMode": "clang-x64",

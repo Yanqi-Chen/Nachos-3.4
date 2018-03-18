@@ -14,7 +14,7 @@
 #include "elevatortest.h"
 
 // testnum is set in main.cc
-int testnum = 1;
+int testnum = 3;
 
 //----------------------------------------------------------------------
 // SimpleThread
@@ -28,16 +28,16 @@ int testnum = 1;
 void
 SimpleThread(int which)
 {
-    int num;
-    
-    for (num = 0; num < 5; num++) 
-    {
-	    printf("*** thread %d looped %d times\n", which, num);
-        /* lab1 begin */
-        PrintThreadStates();
-        /* lab1 end */
-        currentThread->Yield();
-    }
+	int num;
+	
+	for (num = 0; num < 5; num++) 
+	{
+		printf("*** thread %d looped %d times\n", which, num);
+		/* lab1 begin */
+		PrintThreadStates();
+		/* lab1 end */
+		currentThread->Yield();
+	}
 }
 
 //----------------------------------------------------------------------
@@ -49,12 +49,12 @@ SimpleThread(int which)
 void
 ThreadTest1()
 {
-    DEBUG('t', "Entering ThreadTest1");
+	DEBUG('t', "Entering ThreadTest1\n");
 
-    Thread *t = new Thread("forked thread");
+	Thread *t = new Thread("forked thread");
 
-    t->Fork(SimpleThread, (void*)1);
-    SimpleThread(0);
+	t->Fork(SimpleThread, (void*)1);
+	SimpleThread(0);
 }
 /* lab1 begin */
 //----------------------------------------------------------------------
@@ -65,15 +65,40 @@ ThreadTest1()
 void
 ThreadTest2()
 {
-    DEBUG('t', "Entering ThreadTest2");
-    for (int i = 0; i < 127; ++i)
-    {
-        Thread *t = new Thread("forked thread");
-        if (i == 126)
-            PrintThreadStates();
-    }
+	DEBUG('t', "Entering ThreadTest2\n");
+	for (int i = 0; i < 127; ++i)
+	{
+		Thread *t = new Thread("forked thread");
+		if (i == 126)
+			PrintThreadStates();
+	}
 }
 /* lab1 end */
+/* lab2 begin */
+//----------------------------------------------------------------------
+// ThreadTest3
+// 	New 128 threads.
+//----------------------------------------------------------------------
+void
+DoNothing(int num)
+{
+	PrintThreadStates();
+}
+void
+PreemptThread(int num)
+{
+	PrintThreadStates();
+	Thread *t2 = new Thread("high", -2);
+	t2->Fork(DoNothing, (void*)-1);
+}
+void
+ThreadTest3()
+{
+	DEBUG('t', "Entering ThreadTest3\n");
+	Thread *t1 = new Thread("low", -1);
+	t1->Fork(PreemptThread, (void*)-1);
+}
+/* lab2 end */
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -82,21 +107,26 @@ ThreadTest2()
 void
 ThreadTest()
 {
-    switch (testnum) 
-    {
-    case 1:
+	switch (testnum) 
 	{
-        ThreadTest1();
-        break;
-    }
-    case 2:
-    {
-        ThreadTest2();
-        break;
-    }
-    default:
+	case 1:
+	{
+		ThreadTest3();
+		break;
+	}
+	case 2:
+	{
+		ThreadTest2();
+		break;
+	}
+	case 3:
+	{
+		ThreadTest3();
+		break;
+	}
+	default:
 	printf("No test specified.\n");
 	break;
-    }
+	}
 }
 

@@ -25,6 +25,9 @@ char tStatus[4][13] = { "JUST_CREATED", "RUNNING", "READY", "BLOCKED" };
 #define MAX_THREADS 128
 int UID = 1000;
 /* lab1 end */
+/* lab2 begin */
+const int defaultPrior = 0;
+/* lab2 end */
 
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
@@ -67,7 +70,7 @@ extern void Cleanup();
 static void
 TimerInterruptHandler(int dummy)
 {
-    if (interrupt->getStatus() != IdleMode)
+	if (interrupt->getStatus() != IdleMode)
 	interrupt->YieldOnReturn();
 }
 
@@ -84,92 +87,92 @@ TimerInterruptHandler(int dummy)
 void
 Initialize(int argc, char **argv)
 {
-    int argCount;
-    char* debugArgs = "";
-    bool randomYield = FALSE;
-    
-    memset(tInfo, 0, sizeof(tInfo));
+	int argCount;
+	char* debugArgs = "";
+	bool randomYield = FALSE;
+	
+	memset(tInfo, 0, sizeof(tInfo));
 
 #ifdef USER_PROGRAM
-    bool debugUserProg = FALSE;	// single step user program
+	bool debugUserProg = FALSE;	// single step user program
 #endif
 #ifdef FILESYS_NEEDED
-    bool format = FALSE;	// format disk
+	bool format = FALSE;	// format disk
 #endif
 #ifdef NETWORK
-    double rely = 1;		// network reliability
-    int netname = 0;		// UNIX socket name
+	double rely = 1;		// network reliability
+	int netname = 0;		// UNIX socket name
 #endif
-    
-    for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
+	
+	for (argc--, argv++; argc > 0; argc -= argCount, argv += argCount) {
 	argCount = 1;
 	if (!strcmp(*argv, "-d")) {
-	    if (argc == 1)
+		if (argc == 1)
 		debugArgs = "+";	// turn on all debug flags
-	    else {
-	    	debugArgs = *(argv + 1);
-	    	argCount = 2;
-	    }
+		else {
+			debugArgs = *(argv + 1);
+			argCount = 2;
+		}
 	} else if (!strcmp(*argv, "-rs")) {
-	    ASSERT(argc > 1);
-	    RandomInit(atoi(*(argv + 1)));	// initialize pseudo-random
+		ASSERT(argc > 1);
+		RandomInit(atoi(*(argv + 1)));	// initialize pseudo-random
 						// number generator
-	    randomYield = TRUE;
-	    argCount = 2;
+		randomYield = TRUE;
+		argCount = 2;
 	}
 #ifdef USER_PROGRAM
 	if (!strcmp(*argv, "-s"))
-	    debugUserProg = TRUE;
+		debugUserProg = TRUE;
 #endif
 #ifdef FILESYS_NEEDED
 	if (!strcmp(*argv, "-f"))
-	    format = TRUE;
+		format = TRUE;
 #endif
 #ifdef NETWORK
 	if (!strcmp(*argv, "-l")) {
-	    ASSERT(argc > 1);
-	    rely = atof(*(argv + 1));
-	    argCount = 2;
+		ASSERT(argc > 1);
+		rely = atof(*(argv + 1));
+		argCount = 2;
 	} else if (!strcmp(*argv, "-m")) {
-	    ASSERT(argc > 1);
-	    netname = atoi(*(argv + 1));
-	    argCount = 2;
+		ASSERT(argc > 1);
+		netname = atoi(*(argv + 1));
+		argCount = 2;
 	}
 #endif
-    }
+	}
 
-    DebugInit(debugArgs);			// initialize DEBUG messages
-    stats = new Statistics();			// collect statistics
-    interrupt = new Interrupt;			// start up interrupt handling
-    scheduler = new Scheduler();		// initialize the ready queue
-    if (randomYield)				// start the timer (if needed)
+	DebugInit(debugArgs);			// initialize DEBUG messages
+	stats = new Statistics();			// collect statistics
+	interrupt = new Interrupt;			// start up interrupt handling
+	scheduler = new Scheduler();		// initialize the ready queue
+	if (randomYield)				// start the timer (if needed)
 	timer = new Timer(TimerInterruptHandler, 0, randomYield);
 
-    threadToBeDestroyed = NULL;
+	threadToBeDestroyed = NULL;
 
-    // We didn't explicitly allocate the current thread we are running in.
-    // But if it ever tries to give up the CPU, we better have a Thread
-    // object to save its state. 
-    currentThread = new Thread("main");		
-    currentThread->setStatus(RUNNING);
+	// We didn't explicitly allocate the current thread we are running in.
+	// But if it ever tries to give up the CPU, we better have a Thread
+	// object to save its state. 
+	currentThread = new Thread("main");		
+	currentThread->setStatus(RUNNING);
 
-    interrupt->Enable();
-    CallOnUserAbort(Cleanup);			// if user hits ctl-C
-    
+	interrupt->Enable();
+	CallOnUserAbort(Cleanup);			// if user hits ctl-C
+	
 #ifdef USER_PROGRAM
-    machine = new Machine(debugUserProg);	// this must come first
+	machine = new Machine(debugUserProg);	// this must come first
 #endif
 
 #ifdef FILESYS
-    synchDisk = new SynchDisk("DISK");
+	synchDisk = new SynchDisk("DISK");
 #endif
 
 #ifdef FILESYS_NEEDED
-    fileSystem = new FileSystem(format);
+	fileSystem = new FileSystem(format);
 #endif
 
 #ifdef NETWORK
-    postOffice = new PostOffice(netname, rely, 10);
+	postOffice = new PostOffice(netname, rely, 10);
 #endif
 }
 
@@ -180,42 +183,43 @@ Initialize(int argc, char **argv)
 void
 Cleanup()
 {
-    printf("\nCleaning up...\n");
+	printf("\nCleaning up...\n");
 #ifdef NETWORK
-    delete postOffice;
+	delete postOffice;
 #endif
-    
+	
 #ifdef USER_PROGRAM
-    delete machine;
+	delete machine;
 #endif
 
 #ifdef FILESYS_NEEDED
-    delete fileSystem;
+	delete fileSystem;
 #endif
 
 #ifdef FILESYS
-    delete synchDisk;
+	delete synchDisk;
 #endif
-    
-    delete timer;
-    delete scheduler;
-    delete interrupt;
-    
-    Exit(0);
+	
+	delete timer;
+	delete scheduler;
+	delete interrupt;
+	
+	Exit(0);
 }
 /* lab1 begin */
 void PrintThreadStates()
 {
-    putchar('\n');
-    printf("TID  UID  NAME          STATUS\n");
-    for (int i = 0; i < MAX_THREADS; ++i)
-    {
-        if (tInfo[i].threadPointer != NULL)
-        {
-            printf("%-5d%-5d%-14s%s\n", i, tInfo[i].uid, tInfo[i].name, tInfo[i].status);           
-        }
-    }
-    putchar('\n');
+	putchar('\n');
+	printf("TID  UID  NAME          STATUS        PRIORITY\n");
+	for (int i = 0; i < MAX_THREADS; ++i)
+	{
+		if (tInfo[i].threadPointer != NULL)
+		{
+			printf("%-5d%-5d%-14s%-14s%d\n", i, tInfo[i].uid, tInfo[i].name, tInfo[i].status, 
+				-tInfo[i].prior);         
+		}
+	}
+	putchar('\n');
 }
 /* lab1 end */
 
