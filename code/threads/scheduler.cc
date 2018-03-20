@@ -29,6 +29,9 @@
 
 Scheduler::Scheduler()
 { 
+    /* lab2 begin */  
+    lastSwitchTick = 0; 
+    /* lab2 end */
     readyList = new List; 
 } 
 
@@ -74,7 +77,10 @@ Thread *
 Scheduler::FindNextToRun ()
 {
     /* lab2 begin */
-    int rt;
+    int rt = (stats->totalTicks) - lastSwitchTick;
+    currentThread->incRuntime(rt);
+    tInfo[currentThread->getTid()].runtime += rt;
+    PrintThreadStates();
     return (Thread *)readyList->SortedRemove(&rt);
     /* lab2 end */
 }
@@ -97,7 +103,9 @@ void
 Scheduler::Run (Thread *nextThread)
 {
     Thread *oldThread = currentThread;
-    
+    /* lab2 begin */
+    lastSwitchTick = stats->totalTicks;
+    /* lab2 end */
 #ifdef USER_PROGRAM			// ignore until running user programs 
     if (currentThread->space != NULL) {	// if this thread is a user program,
         currentThread->SaveUserState(); // save the user's CPU registers

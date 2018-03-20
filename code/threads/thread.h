@@ -108,7 +108,7 @@ class Thread {
 	/* lab1 end */
 	/* lab2 begin */
 	int getRuntime() { return (runtime); }
-	void incRuntime() { runtime++; }
+	void incRuntime(int period) { runtime += period; }
 	/* lab2 end */
 
   private:

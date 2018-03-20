@@ -69,10 +69,6 @@ TimerInterruptHandler(int dummy)
 {
     if (interrupt->getStatus() != IdleMode)
 	interrupt->YieldOnReturn();
-    /* lab2 begin */
-    currentThread->incRuntime();
-    tInfo[currentThread->getTid()].runtime++;
-    /* lab2 end */
 }
 
 //----------------------------------------------------------------------
@@ -212,7 +208,7 @@ Cleanup()
 void PrintThreadStates()
 {
     putchar('\n');
-    printf("TID  UID  NAME            STATUS      RUNTIME\n");
+    printf("TID  UID  NAME            STATUS        RUNTIME\n");
     for (int i = 0; i < MAX_THREADS; ++i)
     {
         if (tInfo[i].threadPointer != NULL)
