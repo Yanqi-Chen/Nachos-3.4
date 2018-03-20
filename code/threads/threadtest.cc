@@ -79,12 +79,22 @@ ThreadTest2()
 // ThreadTest3
 //  2 threads, round robin.
 //----------------------------------------------------------------------
-void RRtest(int dummy)
+void RRtestY(int dummy)
 {
-    while(currentThread->getRuntime() < 100) 
+    while(currentThread->getRuntime() < 200) 
     { 
         currentThread->Yield();
+        interrupt->SetLevel(IntOn);
+        interrupt->SetLevel(IntOff);
     }
+}
+void RRtest(int dummy)
+{
+    while(currentThread->getRuntime() < 200) 
+    {
+        interrupt->SetLevel(IntOn);
+        interrupt->SetLevel(IntOff);
+    };
 }
 void
 ThreadTest3()
@@ -93,7 +103,7 @@ ThreadTest3()
     Thread *t1 = new Thread("forked thread 1");
     t1->Fork(RRtest, (void*)1);
     Thread *t2 = new Thread("forked thread 2");
-    t2->Fork(RRtest, (void*)2);
+    t2->Fork(RRtestY, (void*)2);
     RRtest(0);
 }
 /* lab2 end */

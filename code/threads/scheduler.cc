@@ -80,7 +80,7 @@ Scheduler::FindNextToRun ()
     int rt = (stats->totalTicks) - lastSwitchTick;
     currentThread->incRuntime(rt);
     tInfo[currentThread->getTid()].runtime += rt;
-    PrintThreadStates();
+    scheduler->Print();
     return (Thread *)readyList->SortedRemove(&rt);
     /* lab2 end */
 }
@@ -118,7 +118,7 @@ Scheduler::Run (Thread *nextThread)
 
     currentThread = nextThread;		    // switch to the next thread
     currentThread->setStatus(RUNNING);      // nextThread is now running
-    
+    PrintThreadStates();
     DEBUG('t', "Switching from thread tid = %d \"%s\" to thread tid = %d \"%s\""
       "\n", oldThread->getTid(), oldThread->getName(), nextThread->getTid(),
       nextThread->getName());
