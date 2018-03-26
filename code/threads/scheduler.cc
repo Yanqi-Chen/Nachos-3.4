@@ -53,7 +53,7 @@ Scheduler::~Scheduler()
 void
 Scheduler::ReadyToRun (Thread *thread)
 {
-    DEBUG('t', "Putting thread tid = %d %s on ready list.\n", thread->getTid(),
+    DEBUG('t', "Putting thread tid = %d \"%s\" on ready list.\n", thread->getTid(),
       thread->getName());
 
     thread->setStatus(READY);

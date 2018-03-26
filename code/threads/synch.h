@@ -38,17 +38,19 @@
 
 class Semaphore {
   public:
-    Semaphore(char* debugName, int initialValue);	// set initial value
-    ~Semaphore();   					// de-allocate semaphore
-    char* getName() { return name;}			// debugging assist
-    
-    void P();	 // these are the only operations on a semaphore
-    void V();	 // they are both *atomic*
-    
+	Semaphore(char* debugName, int initialValue);	// set initial value
+	~Semaphore();   					// de-allocate semaphore
+	char* getName() { return name;}			// debugging assist
+	
+	void P();	 // these are the only operations on a semaphore
+	void V();	 // they are both *atomic*
+
+	void Print();
+	
   private:
-    char* name;        // useful for debugging
-    int value;         // semaphore value, always >= 0
-    List *queue;       // threads waiting in P() for the value to be > 0
+	char* name;        // useful for debugging
+	int value;         // semaphore value, always >= 0
+	List *queue;       // threads waiting in P() for the value to be > 0
 };
 
 // The following class defines a "lock".  A lock can be BUSY or FREE.
@@ -65,21 +67,30 @@ class Semaphore {
 
 class Lock {
   public:
-    Lock(char* debugName);  		// initialize lock to be FREE
-    ~Lock();				// deallocate lock
-    char* getName() { return name; }	// debugging assist
+	Lock(char* debugName);  		// initialize lock to be FREE
+	~Lock();				// deallocate lock
+	char* getName() { return name; }	// debugging assist
 
-    void Acquire(); // these are the only operations on a lock
-    void Release(); // they are both *atomic*
+	void Acquire(); // these are the only operations on a lock
+	void Release(); // they are both *atomic*
 
-    bool isHeldByCurrentThread();	// true if the current thread
+	bool isHeldByCurrentThread();	// true if the current thread
 					// holds this lock.  Useful for
 					// checking in Release, and in
 					// Condition variable ops below.
+	/* lab3 begin */
+	void setOwner(Thread* newOwner);
+	void Print();
+	/* lab3 end */
 
   private:
-    char* name;				// for debugging
-    // plus some other stuff you'll need to define
+	char* name;				// for debugging
+	// plus some other stuff you'll need to define
+
+	/* lab3 begin */
+	Thread* owner;
+	Semaphore* sem;
+	/* lab3 end */
 };
 
 // The following class defines a "condition variable".  A condition
@@ -116,21 +127,52 @@ class Lock {
 
 class Condition {
   public:
-    Condition(char* debugName);		// initialize condition to 
+	Condition(char* debugName);		// initialize condition to 
 					// "no one waiting"
-    ~Condition();			// deallocate the condition
-    char* getName() { return (name); }
-    
-    void Wait(Lock *conditionLock); 	// these are the 3 operations on 
+	~Condition();			// deallocate the condition
+	char* getName() { return (name); }
+	
+	void Wait(Lock *conditionLock); 	// these are the 3 operations on 
 					// condition variables; releasing the 
 					// lock and going to sleep are 
 					// *atomic* in Wait()
-    void Signal(Lock *conditionLock);   // conditionLock must be held by
-    void Broadcast(Lock *conditionLock);// the currentThread for all of 
+	void Signal(Lock *conditionLock);   // conditionLock must be held by
+	void Broadcast(Lock *conditionLock);// the currentThread for all of 
 					// these operations
 
   private:
-    char* name;
-    // plus some other stuff you'll need to define
+	char* name;
+	// plus some other stuff you'll need to define
+/* lab3 begin */
+	List *waitQueue;
 };
+
+
+class Barrier {
+  public:
+	Barrier(int cnt);
+	~Barrier();
+	void Wait();
+	bool activate;
+  private:
+	int count;
+	int total;
+	Condition *cond;
+	Lock *mutex;
+};
+
+class RWlock {
+  public:
+	RWlock();
+	~RWlock();
+	void Read(VoidFunctionPtr func, int arg);
+	void Write(VoidFunctionPtr func, int arg);
+	void Print() { rwlock->Print(); }
+  private:
+	Lock *rwlock;
+	Lock *mutex;
+	Lock *buflock;
+	int rCnt;
+};
+/* lab3 end */
 #endif // SYNCH_H

@@ -35,9 +35,9 @@
 
 Semaphore::Semaphore(char* debugName, int initialValue)
 {
-    name = debugName;
-    value = initialValue;
-    queue = new List;
+	name = debugName;
+	value = initialValue;
+	queue = new List;
 }
 
 //----------------------------------------------------------------------
@@ -48,7 +48,7 @@ Semaphore::Semaphore(char* debugName, int initialValue)
 
 Semaphore::~Semaphore()
 {
-    delete queue;
+	delete queue;
 }
 
 //----------------------------------------------------------------------
@@ -64,16 +64,16 @@ Semaphore::~Semaphore()
 void
 Semaphore::P()
 {
-    IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
-    
-    while (value == 0) { 			// semaphore not available
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);	// disable interrupts
+	
+	while (value == 0) { 			// semaphore not available
 	queue->Append((void *)currentThread);	// so go to sleep
 	currentThread->Sleep();
-    } 
-    value--; 					// semaphore available, 
+	} 
+	value--; 					// semaphore available, 
 						// consume its value
-    
-    (void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
+	
+	(void) interrupt->SetLevel(oldLevel);	// re-enable interrupts
 }
 
 //----------------------------------------------------------------------
@@ -87,26 +87,193 @@ Semaphore::P()
 void
 Semaphore::V()
 {
-    Thread *thread;
-    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	Thread *thread;
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
 
-    thread = (Thread *)queue->Remove();
-    if (thread != NULL)	   // make thread ready, consuming the V immediately
+	thread = (Thread *)queue->Remove();
+	if (thread != NULL)	   // make thread ready, consuming the V immediately
 	scheduler->ReadyToRun(thread);
-    value++;
-    (void) interrupt->SetLevel(oldLevel);
+	value++;
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+void
+Semaphore::Print()
+{
+    printf("Semaphore queue contents:\n");
+    queue->Mapcar((VoidFunctionPtr) ThreadPrint);
+	printf("\n\n");
 }
 
 // Dummy functions -- so we can compile our later assignments 
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
-Lock::Lock(char* debugName) {}
-Lock::~Lock() {}
-void Lock::Acquire() {}
-void Lock::Release() {}
+Lock::Lock(char* debugName) 
+{
+	name = debugName;
+	owner = NULL;
+	sem = new Semaphore("lock", 1);
+}
 
-Condition::Condition(char* debugName) { }
-Condition::~Condition() { }
-void Condition::Wait(Lock* conditionLock) { ASSERT(FALSE); }
-void Condition::Signal(Lock* conditionLock) { }
-void Condition::Broadcast(Lock* conditionLock) { }
+Lock::~Lock() 
+{
+	delete sem;
+}
+
+void 
+Lock::Print()
+{
+	sem->Print();
+}
+
+void 
+Lock::setOwner(Thread* newOwner)
+{
+	owner = newOwner;
+}
+
+void 
+Lock::Acquire() 
+{
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	sem->P();
+	setOwner(currentThread);
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+void 
+Lock::Release() 
+{
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	setOwner(NULL);
+	sem->V();
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+bool 
+Lock::isHeldByCurrentThread()
+{
+	return (owner == currentThread);
+}
+
+Condition::Condition(char* debugName) 
+{
+	name = debugName;
+	waitQueue = new List;
+}
+
+Condition::~Condition() 
+{ 
+	delete waitQueue;
+}
+
+void 
+Condition::Wait(Lock* conditionLock) 
+{
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	conditionLock->Release();
+	waitQueue->Append(currentThread);
+	currentThread->Sleep();
+	conditionLock->Acquire();
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+void 
+Condition::Signal(Lock* conditionLock) 
+{	
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	Thread* asleepThread = (Thread*)(waitQueue->Remove());
+	if (asleepThread != NULL)
+		scheduler->ReadyToRun(asleepThread);
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+void 
+Condition::Broadcast(Lock* conditionLock) 
+{
+	IntStatus oldLevel = interrupt->SetLevel(IntOff);
+	Thread* asleepThread;
+	while ((asleepThread = (Thread*)(waitQueue->Remove())) != NULL)
+		scheduler->ReadyToRun(asleepThread);
+	(void) interrupt->SetLevel(oldLevel);
+}
+
+Barrier::Barrier(int cnt)
+{
+	count = cnt;
+	activate = true;
+	total = 0;
+	cond = new Condition("barrier cond");
+	mutex = new Lock("barrier lock");
+}
+
+Barrier::~Barrier()
+{
+	delete cond;
+	delete mutex;
+}
+
+void
+Barrier::Wait()
+{
+	mutex->Acquire();
+	total++;
+
+	// last thread reach here
+	if (total == count)
+	{
+		cond->Broadcast(mutex);
+		activate = false;
+	}
+	else
+		cond->Wait(mutex);
+	mutex->Release();
+}
+
+RWlock::RWlock()
+{
+	rCnt = 0;
+	rwlock = new Lock("read-write lock");
+	mutex = new Lock("mutex lock");
+	buflock = new Lock("buffer lock");
+}
+
+RWlock::~RWlock()
+{
+	delete mutex;
+	delete rwlock;
+	delete buflock;
+}
+
+void
+RWlock::Read(VoidFunctionPtr func, int arg)
+{
+	mutex->Acquire();
+	if (rCnt == 0)
+		rwlock->Acquire();
+	rCnt++;
+	mutex->Release();
+
+	buflock->Acquire();
+	(*func)(arg);
+	buflock->Release();
+
+	mutex->Acquire();
+	rCnt--;
+	if (rCnt == 0)
+		rwlock->Release();
+	mutex->Release();
+}
+
+void
+RWlock::Write(VoidFunctionPtr func, int arg)
+{
+	while (rCnt > 0)
+		rwlock->Acquire();
+
+	buflock->Acquire();
+	(*func)(arg);
+	buflock->Release();
+
+	rwlock->Release();
+}

@@ -75,32 +75,32 @@ extern void ThreadPrint(int arg);
 
 class Thread {
   private:
-    // NOTE: DO NOT CHANGE the order of these first two members.
-    // THEY MUST be in this position for SWITCH to work.
-    int* stackTop;			 // the current stack pointer
-    void *machineState[MachineStateSize];  // all registers except for stackTop
+	// NOTE: DO NOT CHANGE the order of these first two members.
+	// THEY MUST be in this position for SWITCH to work.
+	int* stackTop;			 // the current stack pointer
+	void *machineState[MachineStateSize];  // all registers except for stackTop
 
   public:
-    Thread(char* debugName);		// initialize a Thread 
-    ~Thread(); 				// deallocate a Thread
+	Thread(char* debugName);		// initialize a Thread 
+	~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted
 					// must not be running when delete 
 					// is called
 
-    // basic thread operations
+	// basic thread operations
 
-    void Fork(VoidFunctionPtr func, void *arg); 	// Make thread run (*func)(arg)
-    void Yield();  				// Relinquish the CPU if any 
+	void Fork(VoidFunctionPtr func, void *arg); 	// Make thread run (*func)(arg)
+	void Yield();  				// Relinquish the CPU if any 
 						// other thread is runnable
-    void Sleep();  				// Put the thread to sleep and 
+	void Sleep();  				// Put the thread to sleep and 
 						// relinquish the processor
-    void Finish();  				// The thread is done executing
-    
-    void CheckOverflow();   			// Check if thread has 
+	void Finish();  				// The thread is done executing
+	
+	void CheckOverflow();   			// Check if thread has 
 						// overflowed its stack
-    void setStatus(ThreadStatus st);
-    char* getName() { return (name); }
-    void Print() { printf("%s, ", name); }
+	void setStatus(ThreadStatus st);
+	char* getName() { return (name); }
+	void Print() { printf("%s, ", name); }
 	/* lab1 begin */
 	static int cntThreads;
 	int getUid() { return (uid); }
@@ -108,19 +108,19 @@ class Thread {
 	/* lab1 end */
 
   private:
-    // some of the private data for this class is listed above
-    
-    int* stack; 	 		// Bottom of the stack 
+	// some of the private data for this class is listed above
+	
+	int* stack; 	 		// Bottom of the stack 
 					// NULL if this is the main thread
 					// (If NULL, don't deallocate stack)
-    ThreadStatus status;		// ready, running or blocked
-    char* name;
+	ThreadStatus status;		// ready, running or blocked
+	char* name;
 
-    void StackAllocate(VoidFunctionPtr func, void *arg);
-    					// Allocate a stack for thread.
+	void StackAllocate(VoidFunctionPtr func, void *arg);
+						// Allocate a stack for thread.
 					// Used internally by Fork()
 
-    /* lab1 begin */
+	/* lab1 begin */
 	int tid;
 	int uid;
 	/* lab1 end */
@@ -130,13 +130,13 @@ class Thread {
 // one for its state while executing user code, one for its state 
 // while executing kernel code.
 
-    int userRegisters[NumTotalRegs];	// user-level CPU register state
+	int userRegisters[NumTotalRegs];	// user-level CPU register state
 
   public:
-    void SaveUserState();		// save user-level register state
-    void RestoreUserState();		// restore user-level register state
+	void SaveUserState();		// save user-level register state
+	void RestoreUserState();		// restore user-level register state
 
-    AddrSpace *space;			// User code this thread is running.
+	AddrSpace *space;			// User code this thread is running.
 #endif
 };
 
