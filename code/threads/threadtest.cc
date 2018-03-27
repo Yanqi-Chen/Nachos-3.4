@@ -97,9 +97,9 @@ ReaderSem(int num)
 
 	bufMutex->P();
 	sscanf(buffer, "%[^\n]", readContent);
+	printf("reader %d read \"%s\"\n", num, readContent);
 	bufMutex->V();
 
-	printf("reader %d read \"%s\"\n", num, readContent);
 }
 
 void
