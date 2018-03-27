@@ -149,7 +149,7 @@ void
 ReaderCond(int num)
 {    
 	char readContent[50];
-	while (wCnt > 0 || rCnt > 0)
+	while (wCnt > 0)
 		rCond->Wait(bufLock);
 
 	rCnt++;
