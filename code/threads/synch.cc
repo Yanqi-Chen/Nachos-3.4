@@ -198,6 +198,14 @@ Condition::Broadcast(Lock* conditionLock)
 	(void) interrupt->SetLevel(oldLevel);
 }
 
+void
+Condition::Print()
+{
+	printf("Conditon wait queue contents:\n");
+    waitQueue->Mapcar((VoidFunctionPtr) ThreadPrint);
+	printf("\n\n");
+}
+
 Barrier::Barrier(int cnt)
 {
 	count = cnt;
@@ -246,7 +254,7 @@ RWlock::~RWlock()
 }
 
 void
-RWlock::Read(VoidFunctionPtr func, int arg)
+RWlock::ReadLock()
 {
 	mutex->Acquire();
 	if (rCnt == 0)
@@ -255,7 +263,11 @@ RWlock::Read(VoidFunctionPtr func, int arg)
 	mutex->Release();
 
 	buflock->Acquire();
-	(*func)(arg);
+}
+
+void
+RWlock::ReadUnlock()
+{
 	buflock->Release();
 
 	mutex->Acquire();
@@ -266,13 +278,16 @@ RWlock::Read(VoidFunctionPtr func, int arg)
 }
 
 void
-RWlock::Write(VoidFunctionPtr func, int arg)
+RWlock::WriteLock()
 {
 	while (rCnt > 0)
 		rwlock->Acquire();
 
 	buflock->Acquire();
-	(*func)(arg);
+}
+void
+RWlock::WriteUnlock()
+{
 	buflock->Release();
 
 	rwlock->Release();

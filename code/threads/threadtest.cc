@@ -29,16 +29,16 @@ int testnum = 1;
 void
 SimpleThread(int which)
 {
-    int num;
-    
-    for (num = 0; num < 5; num++) 
-    {
-	    printf("*** thread %d looped %d times\n", which, num);
-        /* lab1 begin */
-        PrintThreadStates();
-        /* lab1 end */
-        currentThread->Yield();
-    }
+	int num;
+	
+	for (num = 0; num < 5; num++) 
+	{
+		printf("*** thread %d looped %d times\n", which, num);
+		/* lab1 begin */
+		PrintThreadStates();
+		/* lab1 end */
+		currentThread->Yield();
+	}
 }
 //----------------------------------------------------------------------
 // ThreadTest1
@@ -49,12 +49,12 @@ SimpleThread(int which)
 void
 ThreadTest1()
 {
-    DEBUG('t', "Entering ThreadTest1");
+	DEBUG('t', "Entering ThreadTest1");
 
-    Thread *t = new Thread("forked thread");
+	Thread *t = new Thread("forked thread");
 
-    t->Fork(SimpleThread, (void*)1);
-    SimpleThread(0);
+	t->Fork(SimpleThread, (void*)1);
+	SimpleThread(0);
 }
 /* lab1 begin */
 //----------------------------------------------------------------------
@@ -65,13 +65,13 @@ ThreadTest1()
 void
 ThreadTest2()
 {
-    DEBUG('t', "Entering ThreadTest2");
-    for (int i = 0; i < 127; ++i)
-    {
-        Thread *t = new Thread("forked thread");
-        if (i == 126)
-            PrintThreadStates();
-    }
+	DEBUG('t', "Entering ThreadTest2");
+	for (int i = 0; i < 127; ++i)
+	{
+		Thread *t = new Thread("forked thread");
+		if (i == 126)
+			PrintThreadStates();
+	}
 }
 /* lab1 end */
 
@@ -90,56 +90,56 @@ char buffer[50] = "empty!";
 void
 ReaderSem(int num)
 {    
-    char readContent[50];
-    
-    Rmutex->P();
-    Rmutex->V();
+	char readContent[50];
+	
+	Rmutex->P();
+	Rmutex->V();
 
-    bufMutex->P();
-    sscanf(buffer, "%[^\n]", readContent);
-    bufMutex->V();
+	bufMutex->P();
+	sscanf(buffer, "%[^\n]", readContent);
+	bufMutex->V();
 
-    printf("reader %d read \"%s\"\n", num, readContent);
+	printf("reader %d read \"%s\"\n", num, readContent);
 }
 
 void
 WriterSem(int num)
 {    
-    mutex->P();
-    if (wCnt == 0)
-        Rmutex->P();
-    wCnt++;
-    mutex->V();
+	mutex->P();
+	if (wCnt == 0)
+		Rmutex->P();
+	wCnt++;
+	mutex->V();
 
-    bufMutex->P();
-    sprintf(buffer, "Hello from writer %d.", num);
-    printf("writer %d modify\n", num);
-    bufMutex->V();
+	bufMutex->P();
+	sprintf(buffer, "Hello from writer %d.", num);
+	printf("writer %d modify\n", num);
+	bufMutex->V();
 
-    mutex->P();
-    if (wCnt == 1)
-        Rmutex->V();
-    wCnt--;
-    mutex->V();
+	mutex->P();
+	if (wCnt == 1)
+		Rmutex->V();
+	wCnt--;
+	mutex->V();
 
 }
 
 void
 RW_sem()
 {
-    DEBUG('t', "Entering RW_semaphore");
-    Thread *tr[5], *tw[2];
-    for (int i = 0; i < 5; ++i)
-    {
-        tr[i] = new Thread("reader");
-        tr[i]->Fork(ReaderSem, (void*)i);
-        if(i & 1)
-        {
-            tw[i >> 1] = new Thread("writer");
-            tw[i >> 1]->Fork(WriterSem, (void*)(i >> 1));
-        }
-    }
-    currentThread->Yield();
+	DEBUG('t', "Entering RW_semaphore");
+	Thread *tr[5], *tw[2];
+	for (int i = 0; i < 5; ++i)
+	{
+		tr[i] = new Thread("reader");
+		tr[i]->Fork(ReaderSem, (void*)i);
+		if(i & 1)
+		{
+			tw[i >> 1] = new Thread("writer");
+			tw[i >> 1]->Fork(WriterSem, (void*)(i >> 1));
+		}
+	}
+	currentThread->Yield();
 }
 Lock *bufLock = new Lock("buffer");
 Condition *rCond = new Condition("read condtion");
@@ -148,54 +148,56 @@ Condition *wCond = new Condition("write condtion");
 void
 ReaderCond(int num)
 {    
-    char readContent[50];
-    if (wCnt > 0 || rCnt > 0)
-        rCond->Wait(bufLock);
+	char readContent[50];
+	while (wCnt > 0 || rCnt > 0)
+		rCond->Wait(bufLock);
 
-    rCnt++;
-    sscanf(buffer, "%[^\n]", readContent);
-    printf("reader %d read \"%s\"\n", num, readContent);
-    rCnt--;
+	rCnt++;
+	sscanf(buffer, "%[^\n]", readContent);
+	printf("reader %d read \"%s\"\n", num, readContent);
+	//wCond->Print();
+	rCnt--;
 
-    if (wCnt > 0)
-        wCond->Signal(bufLock);
-    else if (rCnt > 0)
-        rCond->Signal(bufLock);
+	if (wCnt > 0)
+		wCond->Signal(bufLock);
+	else if (rCnt > 0)
+		rCond->Signal(bufLock);
 }
 
 void
 WriterCond(int num)
 {    
-    if (wCnt > 0)
+	while (wCnt > 0)
 		wCond->Wait(bufLock);
 	
 	wCnt++;
-    sprintf(buffer, "Hello from writer %d.", num);
-    printf("writer %d modify\n", num);
+	sprintf(buffer, "Hello from writer %d.", num);
+	printf("writer %d modify\n", num);
+	//wCond->Print();
 	wCnt--;
 
-    if (wCnt > 0)
-        wCond->Signal(bufLock);
-    else if (rCnt > 0)
-        rCond->Signal(bufLock);
+	if (wCnt > 0)
+		wCond->Signal(bufLock);
+	else if (rCnt > 0)
+		rCond->Signal(bufLock);
 }
 
 void
 RW_cond()
 {
-    DEBUG('t', "Entering RW_condition");
-    Thread *tr[5], *tw[2];
-    for (int i = 0; i < 5; ++i)
-    {
-        tr[i] = new Thread("reader");
-        tr[i]->Fork(ReaderCond, (void*)i);
-        if(i & 1)
-        {
-            tw[i >> 1] = new Thread("writer");
-            tw[i >> 1]->Fork(WriterCond, (void*)(i >> 1));
-        }
-    }
-    currentThread->Yield();
+	DEBUG('t', "Entering RW_condition");
+	Thread *tr[5], *tw[2];
+	for (int i = 0; i < 5; ++i)
+	{
+		tr[i] = new Thread("reader");
+		tr[i]->Fork(ReaderCond, (void*)i);
+		if(i & 1)
+		{
+			tw[i >> 1] = new Thread("writer");
+			tw[i >> 1]->Fork(WriterCond, (void*)(i >> 1));
+		}
+	}
+	currentThread->Yield();
 }
 
 Barrier *br = new Barrier(4);
@@ -212,9 +214,9 @@ barrier_test()
 {
 	Thread *t[4];
 	for (int i = 0; i < 4; ++i)
-    {
+	{
 		t[i] = new Thread("barrier");
-        t[i]->Fork(sayHi, (void*)i);
+		t[i]->Fork(sayHi, (void*)i);
 	}
 	while (br->activate == true)
 		currentThread->Yield();
@@ -222,44 +224,40 @@ barrier_test()
 }
 
 RWlock *rw = new RWlock;
-void reader(int num)
-{
-    char readContent[50];
-    sscanf(buffer, "%[^\n]", readContent);
-    printf("reader %d read \"%s\"\n", num, readContent);
-}
-
-void writer(int num)
-{
-    sprintf(buffer, "Hello from writer %d.", num);
-    printf("writer %d modify\n", num);
-}
 
 void readBuffer(int num)
 {
-    rw->Read(reader, num);
-    rw->Print();
+	char readContent[50];
+	rw->ReadLock();
+	sscanf(buffer, "%[^\n]", readContent);
+	printf("reader %d read \"%s\"\n", num, readContent);
+	rw->Print();
+	rw->ReadUnlock();
 }
 void writeBuffer(int num)
 {
-    rw->Write(writer, num);
-    rw->Print();
+	rw->WriteLock();
+	sprintf(buffer, "Hello from writer %d.", num);
+	printf("writer %d modify\n", num);
+	rw->Print();
+	rw->WriteUnlock();
 }
+
 void rwlockTest()
 {
-    DEBUG('t', "Entering RW_condition");
-    Thread *tr[5], *tw[2];
-    for (int i = 0; i < 5; ++i)
-    {
-        tr[i] = new Thread("reader");
-        tr[i]->Fork(readBuffer, (void*)i);
-        if(i & 1)
-        {
-            tw[i >> 1] = new Thread("writer");
-            tw[i >> 1]->Fork(writeBuffer, (void*)(i >> 1));
-        }
-    }
-    currentThread->Yield();
+	DEBUG('t', "Entering RW_condition");
+	Thread *tr[5], *tw[2];
+	for (int i = 0; i < 5; ++i)
+	{
+		tr[i] = new Thread("reader");
+		tr[i]->Fork(readBuffer, (void*)i);
+		if(i & 1)
+		{
+			tw[i >> 1] = new Thread("writer");
+			tw[i >> 1]->Fork(writeBuffer, (void*)(i >> 1));
+		}
+	}
+	currentThread->Yield();
 }
 /* lab3 end */
 
@@ -272,41 +270,41 @@ void rwlockTest()
 void
 ThreadTest()
 {
-    switch (testnum) 
-    {
-    case 1:
+	switch (testnum) 
 	{
-        ThreadTest1();
-        break;
-    }
-    case 2:
-    {
-        ThreadTest2();
-        break;
-    }
-    case 3:
-    {
-        RW_sem();
-        break;
-    }
-    case 4:
-    {
-        RW_cond();
-        break;
-    }
+	case 1:
+	{
+		ThreadTest1();
+		break;
+	}
+	case 2:
+	{
+		ThreadTest2();
+		break;
+	}
+	case 3:
+	{
+		RW_sem();
+		break;
+	}
+	case 4:
+	{
+		RW_cond();
+		break;
+	}
 	case 5:
-    {
-        barrier_test();
-        break;
-    }
-    case 6:
-    {
-        rwlockTest();
-        break;
-    }
-    default:
+	{
+		barrier_test();
+		break;
+	}
+	case 6:
+	{
+		rwlockTest();
+		break;
+	}
+	default:
 	printf("No test specified.\n");
 	break;
-    }
+	}
 }
 

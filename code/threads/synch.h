@@ -139,7 +139,7 @@ class Condition {
 	void Signal(Lock *conditionLock);   // conditionLock must be held by
 	void Broadcast(Lock *conditionLock);// the currentThread for all of 
 					// these operations
-
+	void Print();
   private:
 	char* name;
 	// plus some other stuff you'll need to define
@@ -165,8 +165,10 @@ class RWlock {
   public:
 	RWlock();
 	~RWlock();
-	void Read(VoidFunctionPtr func, int arg);
-	void Write(VoidFunctionPtr func, int arg);
+	void ReadLock();
+	void WriteLock();
+	void ReadUnlock();
+	void WriteUnlock();
 	void Print() { rwlock->Print(); }
   private:
 	Lock *rwlock;
