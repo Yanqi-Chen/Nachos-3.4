@@ -234,7 +234,9 @@ Barrier::Wait()
 		activate = false;
 	}
 	else
-		cond->Wait(mutex);
+		while (total != count)
+			cond->Wait(mutex);
+
 	mutex->Release();
 }
 
