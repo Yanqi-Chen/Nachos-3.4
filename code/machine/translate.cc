@@ -219,24 +219,35 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	    return PageFaultException;
 	}
 	entry = &pageTable[vpn];
-    } else {
-        for (entry = NULL, i = 0; i < TLBSize; i++)
-    	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) {
-		entry = &tlb[i];			// FOUND!
-		break;
-	    }
-	if (entry == NULL) {				// not found
+    }
+	else 
+	{
+        memCnt++;
+		for (entry = NULL, i = 0; i < TLBSize; i++)
+    	    if (tlb[i].valid && (tlb[i].virtualPage == vpn)) 
+			{
+				entry = &tlb[i];			// FOUND!
+				break;
+			}
+		if (entry == NULL) 
+		{				// not found
     	    DEBUG('a', "*** no valid TLB entry found for this virtual page!\n");
+			missCnt++;
     	    return PageFaultException;		// really, this is a TLB fault,
 						// the page may be in memory,
 						// but not in the TLB
-	}
+		}
     }
 
-    if (entry->readOnly && writing) {	// trying to write to a read-only page
-	DEBUG('a', "%d mapped read-only at %d in TLB!\n", virtAddr, i);
-	return ReadOnlyException;
+    if (entry->readOnly && writing) 
+	{	// trying to write to a read-only page
+		DEBUG('a', "%d mapped read-only at %d in TLB!\n", virtAddr, i);
+		return ReadOnlyException;
     }
+	for (i = 0; i < TLBSize; i++)
+    	if (tlb[i].valid && entry != &(tlb[i])) 
+			tlb[i].interval++;
+		
     pageFrame = entry->physicalPage;
 
     // if the pageFrame is too big, there is something really wrong! 
@@ -245,6 +256,7 @@ Machine::Translate(int virtAddr, int* physAddr, int size, bool writing)
 	DEBUG('a', "*** frame %d > %d!\n", pageFrame, NumPhysPages);
 	return BusErrorException;
     }
+	entry->interval = 0;
     entry->use = TRUE;		// set the use, dirty bits
     if (writing)
 	entry->dirty = TRUE;

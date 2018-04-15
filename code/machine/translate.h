@@ -40,6 +40,10 @@ class TranslationEntry {
 			// page is referenced or modified.
     bool dirty;         // This bit is set by the hardware every time the
 			// page is modified.
+    /* lab4 begin */
+    int interval; // Time interval since last used.
+    bool replace;
+    /* lab4 end */
 };
 
 #endif

@@ -37,6 +37,10 @@ extern ThreadInfo tInfo[MAX_THREADS];
 extern char tStatus[4][13];
 extern int UID;
 /* lab1 end */
+/* lab4 begin */
+extern int memCnt;
+extern int missCnt;
+/* lab4 end */
 
 #ifdef USER_PROGRAM
 #include "machine.h"

@@ -25,7 +25,10 @@ char tStatus[4][13] = { "JUST_CREATED", "RUNNING", "READY", "BLOCKED" };
 #define MAX_THREADS 128
 int UID = 1000;
 /* lab1 end */
-
+/* lab4 begin */
+int memCnt = 0;
+int missCnt = 0;
+/* lab4 end */
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif

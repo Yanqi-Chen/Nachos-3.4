@@ -70,7 +70,7 @@ enum ExceptionType { NoException,           // Everything ok!
 #define BadVAddrReg	39	// The failing virtual address on an exception
 
 #define NumTotalRegs 	40
-
+#define USE_TLB
 // The following class defines an instruction, represented in both
 // 	undecoded binary form
 //      decoded to identify
