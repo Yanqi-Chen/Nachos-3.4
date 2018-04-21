@@ -41,8 +41,9 @@ class TranslationEntry {
     bool dirty;         // This bit is set by the hardware every time the
 			// page is modified.
     /* lab4 begin */
-    int interval; // Time interval since last used.
+    long long interval; // Time interval since last used.
     bool replace;
+    bool noSwap;
     /* lab4 end */
 };
 
