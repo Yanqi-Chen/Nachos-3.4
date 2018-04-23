@@ -33,6 +33,7 @@ class AddrSpace {
 	/* lab4 begin */
 	OpenFile *swapFile;
 	char *swapName;
+	int codePageNum;
 	/* lab4 end */
 
 	TranslationEntry *pageTable;	// Assume linear page table translation

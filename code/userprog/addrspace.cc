@@ -134,28 +134,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
                           noffH.initData.size, noffH.code.size);
     }
     delete tempBuff;
-
-#ifndef USE_TLB
-    int codePages = divRoundUp(noffH.code.size, PageSize);
-    int ppn;
-    for (i = 0; i < codePages; ++i)
-    {
-        pageTable[i].virtualPage = i;
-        ppn = pageTable[i].physicalPage = machine->memMap->Find();
-        if (ppn == -1)
-        {
-            printf("Physical memory is full!\n");
-            break;
-        }
-        printf("Code page %d cannot be swapped\n", i);
-        pageTable[i].valid = TRUE;
-        pageTable[i].use = FALSE;
-        pageTable[i].dirty = FALSE;
-        pageTable[i].readOnly = FALSE;
-        pageTable[i].noSwap = TRUE;
-        swapFile->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, i * PageSize);
-    }
-#endif
+    codePageNum = divRoundUp(noffH.code.size, PageSize);
 }
 
 //----------------------------------------------------------------------
@@ -213,10 +192,24 @@ void AddrSpace::InitRegisters()
 
 void AddrSpace::SaveState()
 {
+    printf("Clear TLB or Pagetable of thread \"%s\".\n", currentThread->getName());
 #ifdef USE_TLB
     for (int i = 0; i < TLBSize; i++)
         machine->tlb[i].valid = FALSE;
+#else
+    int ppn;
+    for (int i = 0; i < numPages; i++)
+    {
+        if (pageTable[i].valid && pageTable[i].dirty)
+        {
+            ppn = pageTable[i].physicalPage;
+            swapFile->WriteAt(&(machine->mainMemory[ppn * PageSize]), PageSize, i * PageSize);
+        }
+        pageTable[i].valid = FALSE;
+    }
+    machine->memMap->Refresh();
 #endif
+    printf("Clear complete.\n");
 }
 
 //----------------------------------------------------------------------
@@ -229,6 +222,29 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState()
 {
+#ifndef USE_TLB
+    printf("Restore state of thread \"%s\"\n", currentThread->getName());
+    PrintThreadStates();
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
+    int ppn;
+    for (int i = 0; i < codePageNum; ++i)
+    {
+        pageTable[i].virtualPage = i;
+        ppn = pageTable[i].physicalPage = machine->memMap->Find();
+        if (ppn == -1)
+        {
+            printf("Physical memory is full!\n");
+            break;
+        }
+        printf("Code page %d cannot be swapped\n", i);
+        pageTable[i].valid = TRUE;
+        pageTable[i].use = FALSE;
+        pageTable[i].dirty = FALSE;
+        pageTable[i].readOnly = FALSE;
+        pageTable[i].noSwap = TRUE;
+        swapFile->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, i * PageSize);
+    }
+    printf("Restore complete.\n");
+#endif
 }
