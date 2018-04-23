@@ -43,6 +43,7 @@ class TranslationEntry {
     /* lab4 begin */
     int interval; // Time interval since last used.
     bool replace;
+    int tid;
     /* lab4 end */
 };
 

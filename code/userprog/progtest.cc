@@ -43,6 +43,61 @@ StartProcess(char *filename)
 					// by doing the syscall "exit"
 }
 
+void
+StartSort(int dummy)
+{
+    char *filename = "../test/sort";
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+    if (executable == NULL)
+    {
+        printf("Unable to open file %s\n", filename);
+        return;
+    }
+    space = new AddrSpace(executable);
+    currentThread->space = space;
+
+    delete executable; 
+
+    space->InitRegisters(); 
+    space->RestoreState();  
+
+    machine->Run();
+    ASSERT(FALSE);
+}
+
+void
+StartMatmult(int dummy)
+{
+    char *filename = "../test/matmult";
+    OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+    if (executable == NULL)
+    {
+        printf("Unable to open file %s\n", filename);
+        return;
+    }
+    space = new AddrSpace(executable);
+    currentThread->space = space;
+
+    delete executable; 
+
+    space->InitRegisters(); 
+    space->RestoreState();  
+
+    machine->Run();
+    ASSERT(FALSE);
+}
+
+void 
+TestMultiProcess() 
+{
+      Thread *t1 = new Thread("sort");
+      Thread *t2 = new Thread("matmult");
+      t1->Fork(StartSort, t1->getTid());
+      t2->Fork(StartMatmult, t2->getTid());
+}
+
 // Data structures needed for the console test.  Threads making
 // I/O requests wait on a Semaphore to delay until the I/O completes.
 
