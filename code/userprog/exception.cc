@@ -80,7 +80,7 @@ void ExceptionHandler(ExceptionType which)
 		{
 			int retVal = machine->ReadRegister(4);
 			DEBUG('a', "Exit call\n");
-			printf("Exit code %d\n", retVal);
+			printf("Thread \"%s\" end with exit code %d\n", currentThread->getName(), retVal);
 #ifdef USE_TLB
 #ifdef LRU
 			printf("LRU:\n");

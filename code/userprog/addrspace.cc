@@ -237,7 +237,7 @@ void AddrSpace::RestoreState()
             printf("Physical memory is full!\n");
             break;
         }
-        printf("Code page %d cannot be swapped\n", i);
+        //printf("Code page %d cannot be swapped\n", i);
         pageTable[i].valid = TRUE;
         pageTable[i].use = FALSE;
         pageTable[i].dirty = FALSE;
