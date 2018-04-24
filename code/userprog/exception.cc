@@ -26,6 +26,17 @@
 #include "system.h"
 #include "syscall.h"
 
+void SyscallEnd()
+{
+	int pc = machine->ReadRegister(PCReg);
+	machine->WriteRegister(PrevPCReg, pc);
+	pc = machine->ReadRegister(NextPCReg);
+	machine->WriteRegister(PCReg, pc);
+	pc += 4;
+	machine->WriteRegister(NextPCReg, pc);
+	return;
+}
+
 //----------------------------------------------------------------------
 // ExceptionHandler
 // 	Entry point into the Nachos kernel.  Called when a user program
@@ -68,13 +79,25 @@ ExceptionHandler(ExceptionType which)
 		}
 		case SC_Exit:
 		{
+			int retVal = machine->ReadRegister(4);
+			DEBUG('a', "Exit call\n");
+			printf("Exit code %d\n", retVal);
+#ifdef USE_TLB
+#ifdef LRU
+			printf("LRU:\n");
+#else
+			printf("FIFO:\n");
+#endif
 			printf("miss number:%d, total number:%d\n", missCnt, memCnt);
-			printf("miss rate:%f\n", float(missCnt)/memCnt);
-			interrupt->Halt();
+			printf("miss rate:%f\n", float(missCnt) / memCnt);
+#endif
+			PrintThreadStates();
+			currentThread->Finish();
 			break;
 		}
 		default:;
 		}
+		SyscallEnd();
     } 
 	/* lab4 begin */
 	else if ((which == PageFaultException) && (machine->tlb != NULL))

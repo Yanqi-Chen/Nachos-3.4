@@ -18,11 +18,11 @@ main()
 
     /* first initialize the array, in reverse sorted order */
     for (i = 0; i < sz; i++)		
-        A[i] = sz - i;
+        A[i] = sz - i - 1;
 
     /* then sort! */
     for (i = 0; i < sz - 1; i++)
-        for (j = i; j < (sz - 1 - i); j++)
+        for (j = 0; j < (sz - 1 - i); j++)
 	   if (A[j] > A[j + 1]) {	/* out of order -> need to swap ! */
 	      tmp = A[j];
 	      A[j] = A[j + 1];
