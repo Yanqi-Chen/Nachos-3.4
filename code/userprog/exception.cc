@@ -1,4 +1,4 @@
-// exception.cc 
+// exception.cc
 //	Entry point into the Nachos kernel from user programs.
 //	There are two kinds of things that can cause control to
 //	transfer back to here from user code:
@@ -9,7 +9,7 @@
 //
 //	exceptions -- The user code does something that the CPU can't handle.
 //	For instance, accessing memory that doesn't exist, arithmetic errors,
-//	etc.  
+//	etc.
 //
 //	Interrupts (which can also cause control to transfer from user
 //	code into the Nachos kernel) are handled elsewhere.
@@ -18,7 +18,7 @@
 // Everything else core dumps.
 //
 // Copyright (c) 1992-1993 The Regents of the University of California.
-// All rights reserved.  See copyright.h for copyright notice and limitation 
+// All rights reserved.  See copyright.h for copyright notice and limitation
 // of liability and disclaimer of warranty provisions.
 
 #include "copyright.h"
@@ -51,37 +51,36 @@ void SyscallEnd()
 //		arg3 -- r6
 //		arg4 -- r7
 //
-//	The result of the system call, if any, must be put back into r2. 
+//	The result of the system call, if any, must be put back into r2.
 //
 // And don't forget to increment the pc before returning. (Or else you'll
 // loop making the same system call forever!
 //
-//	"which" is the kind of exception.  The list of possible exceptions 
+//	"which" is the kind of exception.  The list of possible exceptions
 //	are in machine.h.
 //----------------------------------------------------------------------
-#define LRU
-void
-ExceptionHandler(ExceptionType which)
+//#define LRU
+void ExceptionHandler(ExceptionType which)
 {
 	int type = machine->ReadRegister(2);
 	int i;
 	unsigned int vpn, offset;
 
-    if (which == SyscallException) 
+	if (which == SyscallException)
 	{
 		switch (type)
 		{
 		case SC_Halt:
 		{
 			DEBUG('a', "Shutdown, initiated by user program.\n");
-   			interrupt->Halt();
+			interrupt->Halt();
 			break;
 		}
 		case SC_Exit:
 		{
 			int retVal = machine->ReadRegister(4);
 			DEBUG('a', "Exit call\n");
-			printf("Exit code %d\n", retVal);
+			printf("Thread \"%s\" end with exit code %d\n", currentThread->getName(), retVal);
 #ifdef USE_TLB
 #ifdef LRU
 			printf("LRU:\n");
@@ -95,60 +94,114 @@ ExceptionHandler(ExceptionType which)
 			currentThread->Finish();
 			break;
 		}
+		case SC_Exec:
+		{
+			DEBUG('a', "Exec call\n");
+
+			break;
+		}
+		case SC_Fork:
+		{
+			break;
+		}
 		default:;
 		}
 		SyscallEnd();
-    } 
+	}
 	/* lab4 begin */
-	else if ((which == PageFaultException) && (machine->tlb != NULL))
+	else if (which == PageFaultException)
 	{
 		int badVAddr = machine->registers[BadVAddrReg];
-		vpn = (unsigned) badVAddr / PageSize;
-		for (i = 0; i < TLBSize; ++i)
+		vpn = (unsigned)badVAddr / PageSize;
+		// use TLB
+		if (machine->tlb != NULL)
 		{
-			if (machine->tlb[i].valid == false)
-			{
-				machine->tlb[i].valid = true;
-				machine->tlb[i].interval = 0;
-				if (i == 0)
-					machine->tlb[0].replace = true;
-				machine->tlb[i].virtualPage = machine->tlb[i].physicalPage = vpn;
-				break;
-			}
-		}
-		if (i == TLBSize)
-		{
-#ifdef LRU
-			int LRUid, max_intv = -1;
 			for (i = 0; i < TLBSize; ++i)
 			{
-				if (machine->tlb[i].interval > max_intv)
+				if (machine->tlb[i].valid == false)
 				{
-					LRUid = i;
-					max_intv = machine->tlb[i].interval;
-				}
-			}
-			machine->tlb[LRUid].interval = 0;
-			machine->tlb[LRUid].virtualPage = machine->tlb[LRUid].physicalPage = vpn;
-#else
-			int FIFOid;
-			for (i = 0; i < TLBSize; ++i)
-			{
-				if (machine->tlb[i].replace)
-				{
-					FIFOid = i;
-					machine->tlb[i].replace = false;
-					machine->tlb[(i + 1) % TLBSize].replace = true;
+					machine->tlb[i].valid = true;
+					machine->tlb[i].interval = 0;
+					if (i == 0)
+						machine->tlb[0].replace = true;
+					machine->tlb[i].virtualPage = machine->tlb[i].physicalPage = vpn;
 					break;
 				}
 			}
-			machine->tlb[FIFOid].virtualPage = machine->tlb[FIFOid].physicalPage = vpn;
+			if (i == TLBSize)
+			{
+#ifdef LRU
+				int LRUid, max_intv = -1;
+				for (i = 0; i < TLBSize; ++i)
+				{
+					if (machine->tlb[i].interval > max_intv)
+					{
+						LRUid = i;
+						max_intv = machine->tlb[i].interval;
+					}
+				}
+				machine->tlb[LRUid].interval = 0;
+				machine->tlb[LRUid].virtualPage = machine->tlb[LRUid].physicalPage = vpn;
+#else
+				int FIFOid;
+				for (i = 0; i < TLBSize; ++i)
+				{
+					if (machine->tlb[i].replace)
+					{
+						FIFOid = i;
+						machine->tlb[i].replace = false;
+						machine->tlb[(i + 1) % TLBSize].replace = true;
+						break;
+					}
+				}
+				machine->tlb[FIFOid].virtualPage = machine->tlb[FIFOid].physicalPage = vpn;
 #endif
+			}
+		}
+		// use pagetable
+		else
+		{
+			TranslationEntry *ptable = currentThread->space->pageTable;
+			int ppn;
+			int LRUid, max_intv = -1;
+			int npages = currentThread->space->numPages;
+
+			// Need replace(LRU)
+			if ((ppn = machine->memMap->Find()) == -1)
+			{
+				int poffset, voffset;
+				for (int i = 0; i < npages; ++i)
+				{
+					if (ptable[i].valid && (!ptable[i].noSwap) && (ptable[i].interval > max_intv))
+					{
+						max_intv = ptable[i].interval;
+						LRUid = i;
+					}
+				}
+				printf("New vpn %d replace vpn %d in ppn %d\n", vpn, LRUid, ptable[LRUid].physicalPage);
+				if (ptable[LRUid].dirty)
+				{					
+					poffset = ptable[LRUid].physicalPage * PageSize;
+					voffset = ptable[LRUid].virtualPage * PageSize;
+					currentThread->space->swapFile->WriteAt(&(machine->mainMemory[poffset]), PageSize, voffset);
+				}
+				ptable[LRUid].valid = FALSE;
+				ppn = ptable[LRUid].physicalPage;
+			}
+			printf("Place vpn %d in ppn %d\n", vpn, ppn);
+			ptable[vpn].virtualPage = vpn;
+			ptable[vpn].physicalPage = ppn;
+			ptable[vpn].dirty = FALSE;
+			ptable[vpn].valid = TRUE;
+			ptable[vpn].use = TRUE;
+			ptable[vpn].interval = 0;
+			currentThread->space->swapFile->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, vpn * PageSize);
 		}
 	}
 	/* lab4 end */
 	else
 	{
+		ASSERT(FALSE);
 		printf("Unexpected user mode exception %d %d\n", which, type);
-    }
+	}
 }

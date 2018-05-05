@@ -32,3 +32,8 @@ nachos
 *.exe
 *.out
 *.app
+
+# Swap files
+*.swap
+
+*.coff

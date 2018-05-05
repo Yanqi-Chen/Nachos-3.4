@@ -67,6 +67,7 @@ Machine::Machine(bool debug)
         tlb[i].valid = FALSE;
     pageTable = NULL;
 #else	// use linear page table
+    memMap = new BitMap(NumPhysPages);
     tlb = NULL;
     pageTable = NULL;
 #endif

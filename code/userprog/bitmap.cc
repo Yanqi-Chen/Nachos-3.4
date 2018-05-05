@@ -163,3 +163,17 @@ BitMap::WriteBack(OpenFile *file)
 {
    file->WriteAt((char *)map, numWords * sizeof(unsigned), 0);
 }
+
+/* lab4 begin */
+//----------------------------------------------------------------------
+// BitMap::Refresh
+// 	Clear all bits in bitmap.
+//----------------------------------------------------------------------
+void
+BitMap::Refresh()
+{
+    for (int i = 0; i < numBits; i++) 
+        Clear(i);
+}
+
+/* lab4 end */

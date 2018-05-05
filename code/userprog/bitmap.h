@@ -52,6 +52,11 @@ class BitMap {
     void FetchFrom(OpenFile *file); 	// fetch contents from disk 
     void WriteBack(OpenFile *file); 	// write contents to disk
 
+    /* lab4 begin */
+    // Clear all bits in map
+    void Refresh();
+    /* lab4 end */
+
   private:
     int numBits;			// number of bits in the bitmap
     int numWords;			// number of words of bitmap storage
