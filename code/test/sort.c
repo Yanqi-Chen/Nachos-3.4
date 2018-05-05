@@ -8,7 +8,7 @@
  */
 
 #include "syscall.h"
-#define sz 10
+#define sz 256
 int A[sz];	/* size of physical memory; with code, we'll run out of space!*/
 
 int
