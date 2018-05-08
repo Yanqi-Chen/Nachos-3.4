@@ -105,10 +105,6 @@ void Scheduler::Run(Thread *nextThread)
     currentThread = nextThread;        // switch to the next thread
     currentThread->setStatus(RUNNING); // nextThread is now running
 
-    printf("Switching from thread tid = %d \"%s\" to thread tid = %d \"%s\"\n",
-           oldThread->getTid(), oldThread->getName(), nextThread->getTid(),
-           nextThread->getName());
-
     DEBUG('t', "Switching from thread tid = %d \"%s\" to thread tid = %d \"%s\"\n",
           oldThread->getTid(), oldThread->getName(), nextThread->getTid(),
           nextThread->getName());
