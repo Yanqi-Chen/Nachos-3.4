@@ -51,6 +51,8 @@ bool FileHeader::Allocate(BitMap *freeMap, int fileSize)
     numSectors = divRoundUp(fileSize, SectorSize);
     if (freeMap->NumClear() < numSectors)
         return FALSE; // not enough space
+    if (fileSize > MaxFileSize)
+        return FALSE;
 
     if (numSectors < NumDirect)
     {
@@ -100,7 +102,7 @@ void FileHeader::Deallocate(BitMap *freeMap)
         }
 
         int indSec = dataSectors[NumDirect - 1];         // sector number for indirect index
-        ASSERT(freeMap->Test((int)dataSectors[indSec])); // ought to be marked!
+        ASSERT(freeMap->Test((int)indSec)); // ought to be marked!
 
         int *indirectSec = new int[SectorSize / sizeof(int)];
         synchDisk->ReadSector(indSec, (char *)indirectSec);
@@ -234,6 +236,74 @@ void FileHeader::Print()
         }
         printf("\n");
     }
+    putchar('\n');
     delete[] data;
     delete[] indirectSec;
+}
+
+//----------------------------------------------------------------------
+// FileHeader::Extend
+// 	Extend file length
+//----------------------------------------------------------------------
+
+bool FileHeader::ExtendTo(BitMap *freeMap, int position)
+{
+    int newNumSectors = divRoundUp(position, SectorSize);
+
+    if (newNumSectors == numSectors)
+    {
+        numBytes = position;
+        return true;
+    }
+
+    if (newNumSectors - numSectors > freeMap->NumClear())
+        return false;
+    if (position > MaxFileSize)
+        return false;
+
+
+    if (numSectors < NumDirect)
+    {
+        if (newNumSectors < NumDirect)
+        {
+            for (int i = numSectors; i < newNumSectors; ++i)
+            {
+                dataSectors[i] = freeMap->Find();
+                printf("Sector %d allocated\n", dataSectors[i]);
+            }
+        }
+        else
+        {
+            for (int i = numSectors; i < NumDirect - 1; ++i)
+            {
+                dataSectors[i] = freeMap->Find();
+                printf("Sector %d allocated\n", i);
+            }
+            int indSec = dataSectors[NumDirect - 1] = freeMap->Find();
+            printf("Extend sector %d allocated\n", indSec);
+            int *indirectSec = new int[SectorSize / sizeof(int)];
+            for (int i = 0; i < newNumSectors - NumDirect + 1; i++)
+            {
+                indirectSec[i] = freeMap->Find();
+                printf("Indexed sector %d allocated\n", indirectSec[i]);
+            }
+            synchDisk->WriteSector(indSec, (char *)indirectSec);
+            delete[] indirectSec;
+        }
+    }
+    else
+    {
+        int indSec = dataSectors[NumDirect - 1];
+        int *indirectSec = new int[SectorSize / sizeof(int)];
+        synchDisk->ReadSector(indSec, (char *)indirectSec);
+        for (int i = numSectors - NumDirect + 1; i < newNumSectors - NumDirect + 1; i++)
+        {
+            indirectSec[i] = freeMap->Find();
+        }
+        synchDisk->WriteSector(indSec, (char *)indirectSec);
+        delete[] indirectSec;
+    }
+    numBytes = position;
+    numSectors = newNumSectors;
+    return true;
 }

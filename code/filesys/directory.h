@@ -33,13 +33,16 @@
 class DirectoryEntry
 {
   public:
-	bool inUse;					   // Is this directory entry in use?
-	int sector;					   // Location on disk to find the
-								   //   FileHeader for this file
+	bool inUse; // Is this directory entry in use?
+	int sector; // Location on disk to find the
+				//   FileHeader for this file
 	bool short_name;
-	int nameSector;								
+	int nameSector;
+	int pathSector;
 	char name[FileNameMaxLen + 1]; // Text name for file, with +1 for
 								   // the trailing '\0'
+
+	int fileType; // 0 for directory, 1 for file
 };
 
 // The following class defines a UNIX-like "directory".  Each entry in
@@ -66,7 +69,7 @@ class Directory
 	int Find(char *name); // Find the sector number of the
 						  // FileHeader for file: "name"
 
-	bool Add(BitMap *bitMap, char *name, int newSector); // Add a file name into the directory
+	bool Add(BitMap *bitMap, char *name, char *path, int newSector); // Add a file name into the directory
 
 	bool Remove(BitMap *bitMap, char *name); // Remove a file from the directory
 
@@ -77,14 +80,19 @@ class Directory
 				  //  names and their contents.
 
 	void GetLongName(char *name, int i);
+	void GetPathName(char *name, int i);
+	int FindIndex(char *name); // Find the index into the directory
+							   //  table corresponding to "name"
+	DirectoryEntry GetEntry(int id)
+	{
+		return table[id];
+	}
 
   private:
 	int tableSize;		   // Number of directory entries
 	DirectoryEntry *table; // Table of pairs:
 						   // <file name, file header location>
 
-	int FindIndex(char *name); // Find the index into the directory
-							   //  table corresponding to "name"
 };
 
 #endif // DIRECTORY_H

@@ -25,6 +25,8 @@
 #include "filehdr.h"
 #include "directory.h"
 #include "system.h"
+#include "filesys.h"
+#include <string.h>
 
 //----------------------------------------------------------------------
 // Directory::Directory
@@ -92,8 +94,10 @@ int Directory::FindIndex(char *name)
     if (strlen(name) <= FileNameMaxLen)
     {
         for (int i = 0; i < tableSize; i++)
-            if (table[i].inUse && !strncmp(table[i].name, name, FileNameMaxLen))
+        {
+            if (table[i].inUse && !strncmp(table[i].name, name, strlen(name)))
                 return i;
+        }
     }
     else
     {
@@ -119,8 +123,24 @@ int Directory::FindIndex(char *name)
 
 int Directory::Find(char *name)
 {
+    char *p = strchr(name, '/');
+    char *tName = new char[strlen(name)];
+    if (p)
+    {
+        strncpy(tName, name, p - name);
+        tName[p - name] = '\0';
+        int i = FindIndex(tName);
+        if (i == -1)
+            return -1;
+        Directory *childDirectory = new Directory(NumDirEntries);
+        OpenFile *dFile = new OpenFile(table[i].sector);
+        childDirectory->FetchFrom(dFile);
+        int sec = childDirectory->Find(p + 1);
+        delete dFile;
+        delete childDirectory;
+        return sec;      
+    }
     int i = FindIndex(name);
-
     if (i != -1)
         return table[i].sector;
     return -1;
@@ -137,7 +157,7 @@ int Directory::Find(char *name)
 //	"newSector" -- the disk sector containing the added file's header
 //----------------------------------------------------------------------
 
-bool Directory::Add(BitMap *freeMap, char *name, int newSector)
+bool Directory::Add(BitMap *freeMap, char *name, char *path, int newSector)
 {
     if (FindIndex(name) != -1)
         return FALSE;
@@ -149,14 +169,19 @@ bool Directory::Add(BitMap *freeMap, char *name, int newSector)
         {
             table[i].inUse = TRUE;
             table[i].short_name = TRUE;
+            table[i].nameSector = -1;
             strncpy(table[i].name, name, FileNameMaxLen);
+            table[i].name[FileNameMaxLen] = '\0';
             if (strlen(name) > FileNameMaxLen)
             {
                 if ((table[i].nameSector = freeMap->Find()) == -1)
-                    return FALSE;
+                    return FALSE; 
                 table[i].short_name = FALSE;
                 synchDisk->WriteSector(table[i].nameSector, name);
             }
+            if ((table[i].pathSector = freeMap->Find()) == -1)
+                return FALSE;
+            synchDisk->WriteSector(table[i].pathSector, path);
             table[i].sector = newSector;
             return TRUE;
         }
@@ -179,6 +204,7 @@ bool Directory::Remove(BitMap *freeMap, char *name)
         return FALSE; // name not in directory
     if (!table[i].short_name)
         freeMap->Clear(table[i].nameSector);
+    freeMap->Clear(table[i].pathSector);
     table[i].inUse = FALSE;
     return TRUE;
 }
@@ -191,6 +217,16 @@ bool Directory::Remove(BitMap *freeMap, char *name)
 void Directory::GetLongName(char *name, int i)
 {
     synchDisk->ReadSector(table[i].nameSector, name);
+}
+
+//----------------------------------------------------------------------
+// Directory::GetPathName
+// 	Get the path name of current file.
+//----------------------------------------------------------------------
+
+void Directory::GetPathName(char *name, int i)
+{
+    synchDisk->ReadSector(table[i].pathSector, name);
 }
 
 //----------------------------------------------------------------------
@@ -224,23 +260,47 @@ void Directory::Print()
 {
     FileHeader *hdr = new FileHeader;
     char longName[129];
+    char pathName[129];
 
     printf("\nDirectory contents:\n");
+    printf("File list:\n");
+    List();
+    putchar('\n');
     for (int i = 0; i < tableSize; i++)
         if (table[i].inUse)
         {
             printf("Name: ");
             if (table[i].short_name)
-                printf("%s, ", table[i].name);
+                printf("%s\n", table[i].name);
             else
             {
                 GetLongName(longName, i);
-                printf("%s, ", longName);
+                printf("%s\n", longName);
             }
+            GetPathName(pathName, i);
+            printf("Path: %s\n", pathName);
             printf("Sector: %d\n", table[i].sector);
+            printf("Name sector: %d\n", table[i].nameSector);
+            printf("Path sector: %d\n", table[i].pathSector);
             hdr->FetchFrom(table[i].sector);
+            printf("DorF: ");
+            if (hdr->GetIfDir())
+                printf("D\n");
+            else
+                printf("F\n");
             hdr->Print();
+            if (hdr->GetIfDir())
+            {
+                Directory *childDirectory = new Directory(NumDirEntries);
+                OpenFile *dFile = new OpenFile(table[i].sector);
+                childDirectory->FetchFrom(dFile);
+                childDirectory->Print();
+                delete dFile;
+                delete childDirectory;
+            }
+            
         }
     printf("\n");
+    putchar('\n');
     delete hdr;
 }

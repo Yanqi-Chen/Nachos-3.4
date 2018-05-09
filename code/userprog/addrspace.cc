@@ -105,6 +105,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
     // bzero(machine->mainMemory, size);
     char threadName[37];
     strncpy(threadName, currentThread->getName(), 32);
+    threadName[32] = '\0';
     strcat(threadName, ".swap");
     swapName = threadName;
     if (fileSystem->Create(swapName, size))

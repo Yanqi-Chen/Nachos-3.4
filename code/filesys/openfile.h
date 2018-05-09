@@ -102,6 +102,7 @@ class OpenFile
 
   private:
 	FileHeader *hdr; // Header for this file
+	bool is_directory;
 	int hdrSector;
 	int seekPosition; // Current position within the file
 };

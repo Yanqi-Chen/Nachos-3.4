@@ -37,6 +37,9 @@
 
 #include "copyright.h"
 #include "openfile.h"
+#include "bitmap.h"
+
+#define NumDirEntries 10
 
 #ifdef FILESYS_STUB // Temporarily implement file system calls as
 // calls to UNIX, until the real file system
@@ -82,12 +85,12 @@ class FileSystem
 							 // the disk, so initialize the directory
 							 // and the bitmap of free blocks.
 
-	bool Create(char *name, int initialSize, int depth);
+	bool Create(char *name, int initialSize, OpenFile *dFile = NULL, BitMap *freeMap = NULL, int depth = 0);
 	// Create a file (UNIX creat)
 
 	OpenFile *Open(char *name); // Open a file (UNIX open)
 
-	bool Remove(char *name); // Delete a file (UNIX unlink)
+	bool Remove(char *name, OpenFile *dFile = NULL); // Delete a file (UNIX unlink)
 
 	void List(); // List all the files in the file system
 

@@ -25,7 +25,7 @@
 /* lab5 end */
 
 #define NumDirect ((SectorSize - 2 * sizeof(int) - 64) / sizeof(int))
-#define MaxFileSize (NumDirect * SectorSize)
+#define MaxFileSize ((NumDirect - 1 + SectorSize / sizeof(int)) * SectorSize)
 
 // The following class defines the Nachos "file header" (in UNIX terms,
 // the "i-node"), describing where on disk to find all of the data in the file.
@@ -63,6 +63,7 @@ class FileHeader
 					  // in bytes
 
 	void Print(); // Print the contents of the file.
+	bool ExtendTo(BitMap *freeMap, int position);
 	void SetCreateTime()
 	{
 		time_t rawtime;
@@ -84,17 +85,33 @@ class FileHeader
 	void SetType(char *name)
 	{
 		char *extBegin = strrchr(name, '.');
-		strncpy(type, extBegin + 1, 3);
+		if (extBegin)
+		{
+			strncpy(type, extBegin + 1, 3);
+			type[3] = '\0';
+		}
+		else
+			type[0] = 0;
 	}
-
+	void SetIfDir(bool isd)
+	{
+		is_directory = isd;
+	}
+	bool GetIfDir()
+	{
+		return is_directory;
+	}
+	int dataSectors[NumDirect];
+	
   private:
 	char lastUsedTime[18];
 	char lastModTime[18];
 	char createTime[18];
-	char type[10];
+	char type[9];
+	bool is_directory;
 	int numBytes;				// Number of bytes in the file
 	int numSectors;				// Number of data sectors in the file
-	int dataSectors[NumDirect]; // Disk sector numbers for each data
+	 // Disk sector numbers for each data
 								// block in the file
 };
 

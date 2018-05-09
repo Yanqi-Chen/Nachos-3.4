@@ -39,3 +39,4 @@ nachos
 *.coff
 
 DISK
+huge
