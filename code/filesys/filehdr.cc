@@ -29,8 +29,8 @@
 #include <ctype.h>
 #include <string.h>
 
-const char *escapev = "\a\b\t\n\v\f\r\0";
-const char *escapec = "abtnvfr\0";
+static const char *escapev = "\a\b\t\n\v\f\r\0";
+static const char *escapec = "abtnvfr0";
 
 //----------------------------------------------------------------------
 // FileHeader::Allocate

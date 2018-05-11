@@ -102,12 +102,12 @@ class FileHeader
 		return is_directory;
 	}
 	int dataSectors[NumDirect];
-	
+	int hdrSector;
   private:
 	char lastUsedTime[18];
 	char lastModTime[18];
 	char createTime[18];
-	char type[9];
+	char type[5];
 	bool is_directory;
 	int numBytes;				// Number of bytes in the file
 	int numSectors;				// Number of data sectors in the file

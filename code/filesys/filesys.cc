@@ -247,6 +247,7 @@ bool FileSystem::Create(char *name, int initialSize, OpenFile *dFile = NULL, Bit
             {
                 success = TRUE;
                 hdr = new FileHeader;
+                hdr->hdrSector = childDirectorySector;
             }
         }
         // There exist a file or a directory with the same name
@@ -266,7 +267,7 @@ bool FileSystem::Create(char *name, int initialSize, OpenFile *dFile = NULL, Bit
             // directory exists
             tableID = directory->FindIndex(filename);
             Directory *dir = new Directory(NumDirEntries);
-            printf("%d\n",direc_exist);
+            //printf("%d\n",direc_exist);
             if (!direc_exist)
             {
                 if (!hdr->Allocate(freeMap, DirectoryFileSize))
@@ -318,7 +319,7 @@ bool FileSystem::Create(char *name, int initialSize, OpenFile *dFile = NULL, Bit
             }
             else
             {
-                printf("%s\n", filename);
+                //printf("%s\n", filename);
                 hdr = new FileHeader;
                 if (!hdr->Allocate(freeMap, initialSize))
                     success = FALSE; // no space on disk for data
@@ -326,6 +327,7 @@ bool FileSystem::Create(char *name, int initialSize, OpenFile *dFile = NULL, Bit
                 {
                     success = TRUE;
                     /* lab5 begin */
+                    hdr->hdrSector = sector;
                     hdr->SetIfDir(false);
                     hdr->SetCreateTime();
                     hdr->SetModTime();
@@ -387,7 +389,7 @@ FileSystem::Open(char *name)
 
 bool FileSystem::Remove(char *name, OpenFile *dFile = NULL)
 {
-    printf("%s\n", name);
+    //printf("%s\n", name);
     Directory *directory;
     BitMap *freeMap;
     FileHeader *fileHdr;
@@ -413,7 +415,7 @@ bool FileSystem::Remove(char *name, OpenFile *dFile = NULL)
         strcpy(filename, p + 1);
         int dsector = directory->Find(dirname);
         dFile = new OpenFile(dsector);
-        printf("%d\n", dsector);
+        //printf("%d\n", dsector);
         directory->FetchFrom(dFile);
     }
     else
@@ -452,6 +454,12 @@ bool FileSystem::Remove(char *name, OpenFile *dFile = NULL)
 
     freeMap = new BitMap(NumSectors);
     freeMap->FetchFrom(freeMapFile);
+
+    while (synchDisk->numVisitor[sector] != 0)
+    {
+        synchDisk->secCond[sector]->Wait(synchDisk->secLock[sector]);
+    }
+
     fileHdr->Deallocate(freeMap);
     freeMap->Clear(sector);
 

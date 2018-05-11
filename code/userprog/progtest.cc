@@ -11,6 +11,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "console.h"
+#include "synchconsole.h"
 #include "addrspace.h"
 #include "synch.h"
 
@@ -135,6 +136,30 @@ void ConsoleTest(char *in, char *out)
         ch = console->GetChar();
         console->PutChar(ch); // echo it!
         writeDone->P();       // wait for write to finish
+        if (ch == 'q')
+            return; // if q, quit
+    }
+}
+
+
+static SynchConsole *synchconsole;
+
+//----------------------------------------------------------------------
+// SynchConsoleTest
+// 	Test the console by echoing characters typed at the input onto
+//	the output.  Stop when the user types a 'q'.
+//----------------------------------------------------------------------
+
+void SynchConsoleTest(char *in, char *out)
+{
+    char ch;
+
+    synchconsole = new SynchConsole(in, out);
+
+    for (;;)
+    {
+        ch = synchconsole->GetChar();
+        synchconsole->PutChar(ch); // echo it!
         if (ch == 'q')
             return; // if q, quit
     }

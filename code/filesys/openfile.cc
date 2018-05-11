@@ -33,6 +33,7 @@ OpenFile::OpenFile(int sector)
     hdr->FetchFrom(sector);
     seekPosition = 0;
     hdrSector = sector;
+    synchDisk->numVisitor[sector]++;
 }
 
 //----------------------------------------------------------------------
@@ -42,6 +43,9 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
+    synchDisk->numVisitor[hdrSector]--;
+    if (synchDisk->numVisitor[hdrSector] == 0)
+        synchDisk->secCond[hdrSector]->Signal(synchDisk->secLock[hdrSector]);
     delete hdr;
 }
 
@@ -113,12 +117,16 @@ int OpenFile::Write(char *into, int numBytes)
 
 int OpenFile::ReadAt(char *into, int numBytes, int position)
 {
+    synchDisk->rwlock[hdrSector].ReadLock();
     int fileLength = hdr->FileLength();
     int i, firstSector, lastSector, numSectors;
     char *buf;
 
     if ((numBytes <= 0) || (position >= fileLength))
+    {
+        printf("1\n");
         return 0; // check request
+    }
     if ((position + numBytes) > fileLength)
         numBytes = fileLength - position;
     DEBUG('f', "Reading %d bytes at %d, from file of length %d.\n",
@@ -137,13 +145,17 @@ int OpenFile::ReadAt(char *into, int numBytes, int position)
     // copy the part we want
     bcopy(&buf[position - (firstSector * SectorSize)], into, numBytes);
     delete[] buf;
+    synchDisk->rwlock[hdrSector].ReadUnlock();
+    synchDisk->rwlock[hdrSector].WriteLock();
     hdr->SetUsedTime();
     hdr->WriteBack(hdrSector);
+    synchDisk->rwlock[hdrSector].WriteUnlock();
     return numBytes;
 }
 
 int OpenFile::WriteAt(char *from, int numBytes, int position)
 {
+    synchDisk->rwlock[hdrSector].WriteLock();
     int fileLength = hdr->FileLength();
     int i, firstSector, lastSector, numSectors;
     bool firstAligned, lastAligned;
@@ -161,6 +173,7 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
             delete freeMap;
             delete freeMapFile;
             printf("Cannot extend!\n");
+            synchDisk->rwlock[hdrSector].ReadUnlock();
             return 0;
         }
         //printf("%d\n", hdr->dataSectors[NumDirect - 1]);
@@ -170,7 +183,7 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
         delete freeMap;
         delete freeMapFile;
     }
-    
+
     DEBUG('f', "Writing %d bytes at %d, from file of length %d.\n",
           numBytes, position, fileLength);
 
@@ -182,7 +195,7 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
 
     firstAligned = (position == (firstSector * SectorSize));
     lastAligned = ((position + numBytes) == ((lastSector + 1) * SectorSize));
-
+    synchDisk->rwlock[hdrSector].WriteUnlock();
     // read in first and last sector, if they are to be partially modified
     if (!firstAligned)
         ReadAt(buf, SectorSize, firstSector * SectorSize);
@@ -192,7 +205,7 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
 
     // copy in the bytes we want to change
     bcopy(from, &buf[position - (firstSector * SectorSize)], numBytes);
-
+    synchDisk->rwlock[hdrSector].WriteLock();
     // write modified sectors back
     for (i = firstSector; i <= lastSector; i++)
         synchDisk->WriteSector(hdr->ByteToSector(i * SectorSize),
@@ -201,6 +214,7 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
     hdr->SetModTime();
     hdr->SetUsedTime();
     hdr->WriteBack(hdrSector);
+    synchDisk->rwlock[hdrSector].WriteUnlock();
     return numBytes;
 }
 
@@ -212,4 +226,9 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
 int OpenFile::Length()
 {
     return hdr->FileLength();
+}
+
+void OpenFile::Print()
+{
+    hdr->Print();
 }

@@ -16,6 +16,7 @@
 
 #include "copyright.h"
 #include "synchdisk.h"
+#include <string.h>
 
 //----------------------------------------------------------------------
 // DiskRequestDone
@@ -45,6 +46,12 @@ SynchDisk::SynchDisk(char* name)
     semaphore = new Semaphore("synch disk", 0);
     lock = new Lock("synch disk lock");
     disk = new Disk(name, DiskRequestDone, (int) this);
+    memset(numVisitor, 0, sizeof(numVisitor));
+    for (int i = 0; i < NumSectors; ++i)
+    {
+        secCond[i] = new Condition("cond");
+        secLock[i] = new Lock("lock");
+    }
 }
 
 //----------------------------------------------------------------------
@@ -58,6 +65,11 @@ SynchDisk::~SynchDisk()
     delete disk;
     delete lock;
     delete semaphore;
+    for (int i = 0; i < NumSectors; ++i)
+    {
+        delete secCond[i];
+        delete secLock[i];
+    }
 }
 
 //----------------------------------------------------------------------

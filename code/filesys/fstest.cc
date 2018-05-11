@@ -20,6 +20,7 @@
 #include "thread.h"
 #include "disk.h"
 #include "stats.h"
+#include "synch.h"
 
 #define TransferSize 10 // make it small, just to be difficult
 
@@ -34,7 +35,7 @@ void Copy(char *from, char *to)
     OpenFile *openFile;
     int amountRead, fileLength;
     char *buffer;
-    
+
     // Open UNIX file
     if ((fp = fopen(from, "r")) == NULL)
     {
@@ -110,83 +111,143 @@ void Print(char *name)
 //----------------------------------------------------------------------
 
 #define FileName "TestFile"
-#define Contents "1234567890"
+#define Contents "aaaaa"
+#define Contents2 "bbbbb"
+#define Contents3 "ccccc"
 #define ContentSize strlen(Contents)
-#define FileSize ((int)(ContentSize * 180))
-
+#define FileSize ((int)(ContentSize * 5))
+static Barrier barrier(6);
 static void
-FileWrite()
+FileWrite(int dummy)
 {
     OpenFile *openFile;
     int i, numBytes;
 
-    printf("Sequential write of %d byte file, in %d byte chunks\n",
-           FileSize, ContentSize);
-    if (!fileSystem->Create(FileName, 0))
-    {
-        printf("Perf test: can't create %s\n", FileName);
-        return;
-    }
+    printf("Thread %d \"%s\" begin sequential write of %d byte file, in %d byte chunks\n", currentThread->getTid(), currentThread->getName(), FileSize, ContentSize);
+
     openFile = fileSystem->Open(FileName);
+    if (dummy)
+    {
+        barrier.Wait();
+    }
+
     if (openFile == NULL)
     {
-        printf("Perf test: unable to open %s\n", FileName);
+        printf("Perf test: thread %d \"%s\" unable to open %s\n", currentThread->getTid(), FileName);
         return;
     }
     for (i = 0; i < FileSize; i += ContentSize)
     {
-        numBytes = openFile->Write(Contents, ContentSize);
-        if (numBytes < 10)
+        if (dummy == 1)
         {
-            printf("Perf test: unable to write %s\n", FileName);
+            numBytes = openFile->Write(Contents2, ContentSize);
+            printf("Thread %d \"%s\" write from %d to %d bytes:\n%s\n", currentThread->getTid(), currentThread->getName(), i, i + numBytes, Contents2);
+        }
+        else if (dummy == 2)
+        {
+            numBytes = openFile->Write(Contents3, ContentSize);
+            printf("Thread %d \"%s\" write from %d to %d bytes:\n%s\n", currentThread->getTid(), currentThread->getName(), i, i + numBytes, Contents3);
+        }
+        else
+        {
+            numBytes = openFile->Write(Contents, ContentSize);
+            printf("Thread %d \"%s\" write from %d to %d bytes\n", currentThread->getTid(), currentThread->getName(), i, i + numBytes);
+        }
+        if (numBytes < ContentSize)
+        {
+            printf("Perf test: thread %d \"%s\" unable to write %s\n", currentThread->getTid(), currentThread->getName(), FileName);
             delete openFile;
             return;
         }
+    }
+
+    if (dummy)
+    {
+        //barrier.Wait();
+        delete openFile; // close file
+        return;
     }
     delete openFile; // close file
 }
 
 static void
-FileRead()
+FileRead(int dummy)
 {
     OpenFile *openFile;
-    char *buffer = new char[ContentSize];
+    char *buffer = new char[ContentSize + 1];
     int i, numBytes;
 
-    printf("Sequential read of %d byte file, in %d byte chunks\n",
-           FileSize, ContentSize);
+    printf("Thread %d \"%s\" begin sequential read of %d byte file, in %d byte chunks\n", currentThread->getTid(), currentThread->getName(), FileSize, ContentSize);
 
-    if ((openFile = fileSystem->Open(FileName)) == NULL)
+    openFile = fileSystem->Open(FileName);
+    barrier.Wait();
+
+    if (openFile == NULL)
     {
-        printf("Perf test: unable to open file %s\n", FileName);
+        printf("Perf test: thread %d \"%s\" unable to open file %s\n", currentThread->getTid(), currentThread->getName(), FileName);
         delete[] buffer;
         return;
     }
+
     for (i = 0; i < FileSize; i += ContentSize)
     {
         numBytes = openFile->Read(buffer, ContentSize);
-        if ((numBytes < 10) || strncmp(buffer, Contents, ContentSize))
+        printf("Thread %d \"%s\" read from %d to %d bytes in round %d:\n", currentThread->getTid(), currentThread->getName(), i, i + numBytes, i / ContentSize);
+        buffer[ContentSize] = 0;
+        printf("%s\n", buffer);
+        if (numBytes < ContentSize)
         {
-            printf("Perf test: unable to read %s\n", FileName);
+            printf("Perf test: thread %d \"%s\" unable to read %s\n", currentThread->getTid(), currentThread->getName(), FileName);
             delete openFile;
             delete[] buffer;
             return;
         }
     }
     delete[] buffer;
+    //barrier.Wait();
     delete openFile; // close file
+}
+
+static void
+FilePrint(int dummy)
+{
+    OpenFile *openFile;
+    openFile = fileSystem->Open(FileName);
+    barrier.Wait();
+
+    if (openFile == NULL)
+    {
+        printf("Perf test: unable to open file %s\n", FileName);
+        return;
+    }
+    //barrier.Wait();
+    openFile->Print();
+    delete openFile;
 }
 
 void PerformanceTest()
 {
     printf("Starting file system performance test:\n");
-    stats->Print();
-    FileWrite();
-    FileRead();
+    if (!fileSystem->Create(FileName, 0))
+    {
+        printf("Perf test: can't create %s\n", FileName);
+        return;
+    }
+    FileWrite(0);
+    Thread *tw1 = new Thread("writer 1");
+    Thread *tw2 = new Thread("writer 2");
+    Thread *tr1 = new Thread("reader 1");
+    Thread *tr2 = new Thread("reader 2");
+    Thread *tp = new Thread("print");
+    tw1->Fork(FileWrite, (void *)1);
+    tw2->Fork(FileWrite, (void *)2);
+    tr1->Fork(FileRead, (void *)3);
+    tr2->Fork(FileRead, (void *)4);
+    tp->Fork(FilePrint, (void *)5);
+    barrier.Wait();
     if (!fileSystem->Remove(FileName))
     {
         printf("Perf test: unable to remove %s\n", FileName);
         return;
     }
-    stats->Print();
 }
