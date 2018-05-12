@@ -29,6 +29,9 @@ int UID = 1000;
 int memCnt = 0;
 int missCnt = 0;
 /* lab4 end */
+/* lab5 begin */
+Pipe _pipe;
+/* lab5 begin */
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -221,4 +224,16 @@ void PrintThreadStates()
     putchar('\n');
 }
 /* lab1 end */
+/* lab5 begin */
+void ReadPipe(char *into, int numBytes)
+{
+    for (int i = 0; i < numBytes; ++i)
+        into[i] = _pipe.GetChar();
+}
 
+void WritePipe(char *into, int numBytes)
+{
+    for (int i = 0; i < numBytes; ++i)
+        _pipe.PutChar(into[i]);
+}
+/* lab5 end */

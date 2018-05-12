@@ -15,6 +15,7 @@
 #include "interrupt.h"
 #include "stats.h"
 #include "timer.h"
+#include "pipe.h"
 
 #define MAX_THREADS 128
 
@@ -41,6 +42,11 @@ extern int UID;
 extern int memCnt;
 extern int missCnt;
 /* lab4 end */
+/* lab5 begin */
+extern Pipe _pipe;
+extern void ReadPipe(char *into, int numBytes);
+extern void WritePipe(char *into, int numBytes);
+/* lab5 begin */
 
 #ifdef USER_PROGRAM
 #include "machine.h"

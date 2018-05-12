@@ -20,7 +20,6 @@
 #include "thread.h"
 #include "disk.h"
 #include "stats.h"
-#include "synch.h"
 
 #define TransferSize 10 // make it small, just to be difficult
 
@@ -250,4 +249,33 @@ void PerformanceTest()
         printf("Perf test: unable to remove %s\n", FileName);
         return;
     }
+}
+
+static OpenFile *ppipe;
+
+void
+PipeRead(int dummy)
+{
+    char *buffer = new char[ContentSize + 1];
+    ppipe->Read(buffer, ContentSize);
+    buffer[ContentSize] = '\0';
+    printf("Thread %d \"%s\" read:\n", currentThread->getTid(), currentThread->getName());
+    printf("%s\n", buffer);
+}
+
+void
+PipeWrite(int dummy)
+{
+    ppipe->Write(Contents, ContentSize);
+    printf("Thread %d \"%s\" write:\n", currentThread->getTid(), currentThread->getName());
+}
+
+void PipeTest()
+{
+    ppipe = new OpenFile(-1);
+    Thread *tr = new Thread("reader");
+    Thread *tw = new Thread("writer");
+    tr->Fork(PipeRead, (void*)1);
+    tw->Fork(PipeWrite, (void*)2);
+    
 }

@@ -49,7 +49,8 @@ THREAD_H =../threads/copyright.h\
 	../machine/stats.h\
 	../machine/timer.h\
 	../machine/elevator.h\
-	../machine/elevatortest.h
+	../machine/elevatortest.h\
+	../threads/pipe.h
 
 THREAD_C =../threads/main.cc\
 	../threads/list.cc\
@@ -66,13 +67,15 @@ THREAD_C =../threads/main.cc\
 	../machine/timer.cc\
 	../machine/elevatortest.cc\
 	../machine/elevator.cc\
-	../threads/hello.cc
+	../threads/hello.cc\
+	../threads/pipe.cc
+
 
 THREAD_S = ../threads/switch.s
 
 THREAD_O =main.o list.o scheduler.o synch.o synchlist.o system.o thread.o \
 	utility.o threadtest.o interrupt.o stats.o sysdep.o timer.o elevator.o \
-	elevatortest.o hello.o
+	elevatortest.o hello.o pipe.o
 
 USERPROG_H = ../userprog/addrspace.h\
 	../userprog/bitmap.h\
@@ -82,7 +85,7 @@ USERPROG_H = ../userprog/addrspace.h\
 	../machine/machine.h\
 	../machine/mipssim.h\
 	../machine/translate.h\
-	../machine/synchconsole.h
+	../machine/synchconsole.h\
 
 USERPROG_C = ../userprog/addrspace.cc\
 	../userprog/bitmap.cc\
@@ -93,7 +96,6 @@ USERPROG_C = ../userprog/addrspace.cc\
 	../machine/mipssim.cc\
 	../machine/translate.cc\
 	../machine/synchconsole.cc
-
 USERPROG_O = addrspace.o bitmap.o exception.o progtest.o console.o machine.o \
 	mipssim.o translate.o synchconsole.o
 

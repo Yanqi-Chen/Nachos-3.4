@@ -15,9 +15,11 @@
 #include "filehdr.h"
 #include "openfile.h"
 #include "system.h"
+
 #ifdef HOST_SPARC
 #include <strings.h>
 #endif
+
 
 //----------------------------------------------------------------------
 // OpenFile::OpenFile
@@ -29,11 +31,15 @@
 
 OpenFile::OpenFile(int sector)
 {
-    hdr = new FileHeader;
-    hdr->FetchFrom(sector);
-    seekPosition = 0;
-    hdrSector = sector;
-    synchDisk->numVisitor[sector]++;
+    usePipe = (sector == -1);
+    if (!usePipe)
+    {
+        hdr = new FileHeader;
+        hdr->FetchFrom(sector);
+        seekPosition = 0;
+        hdrSector = sector;
+        synchDisk->numVisitor[sector]++;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -43,10 +49,13 @@ OpenFile::OpenFile(int sector)
 
 OpenFile::~OpenFile()
 {
-    synchDisk->numVisitor[hdrSector]--;
-    if (synchDisk->numVisitor[hdrSector] == 0)
-        synchDisk->secCond[hdrSector]->Signal(synchDisk->secLock[hdrSector]);
-    delete hdr;
+    if (!usePipe)
+    {
+        synchDisk->numVisitor[hdrSector]--;
+        if (synchDisk->numVisitor[hdrSector] == 0)
+            synchDisk->secCond[hdrSector]->Signal(synchDisk->secLock[hdrSector]);
+        delete hdr;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -77,16 +86,32 @@ void OpenFile::Seek(int position)
 
 int OpenFile::Read(char *into, int numBytes)
 {
-    int result = ReadAt(into, numBytes, seekPosition);
-    seekPosition += result;
-    return result;
+    if (usePipe)
+    {
+        ReadPipe(into, numBytes);
+        return numBytes;
+    }
+    else
+    {
+        int result = ReadAt(into, numBytes, seekPosition);
+        seekPosition += result;
+        return result;
+    }
 }
 
 int OpenFile::Write(char *into, int numBytes)
 {
-    int result = WriteAt(into, numBytes, seekPosition);
-    seekPosition += result;
-    return result;
+    if (usePipe)
+    {
+        WritePipe(into, numBytes);
+        return numBytes;
+    }
+    else
+    {
+        int result = WriteAt(into, numBytes, seekPosition);
+        seekPosition += result;
+        return result;
+    }
 }
 
 //----------------------------------------------------------------------

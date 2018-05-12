@@ -100,6 +100,7 @@ class OpenFile
 				  // than the UNIX idiom -- lseek to
 				  // end of file, tell, lseek back
 	void Print();
+	bool usePipe;
 
   private:
 	FileHeader *hdr; // Header for this file

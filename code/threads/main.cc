@@ -61,7 +61,7 @@ extern int testnum;
 
 extern void ThreadTest(void), Copy(char *unixFile, char *nachosFile);
 extern void Print(char *file), PerformanceTest(void);
-extern void StartProcess(char *file), ConsoleTest(char *in, char *out), SynchConsoleTest(char *in, char *out), TestMultiProcess();
+extern void StartProcess(char *file), ConsoleTest(char *in, char *out), SynchConsoleTest(char *in, char *out), TestMultiProcess(), PipeTest();
 extern void MailTest(int networkID);
 extern void PrintHello();
 
@@ -169,7 +169,8 @@ int main(int argc, char **argv)
 		else if (!strcmp(*argv, "-t"))
 		{ // performance test
 			printf("Filesys test\n");
-			PerformanceTest();
+			//PerformanceTest();
+			PipeTest();
 		}
 #endif // FILESYS
 #ifdef NETWORK
