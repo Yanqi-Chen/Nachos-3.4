@@ -63,6 +63,10 @@ void SyscallEnd()
 void ExceptionHandler(ExceptionType which)
 {
 	int type = machine->ReadRegister(2);
+	int arg1 = machine->ReadRegister(4);
+	int arg2 = machine->ReadRegister(5);
+	int arg3 = machine->ReadRegister(6);
+
 	int i;
 	unsigned int vpn, offset;
 
@@ -78,9 +82,8 @@ void ExceptionHandler(ExceptionType which)
 		}
 		case SC_Exit:
 		{
-			int retVal = machine->ReadRegister(4);
 			DEBUG('a', "Exit call\n");
-			printf("Thread \"%s\" end with exit code %d\n", currentThread->getName(), retVal);
+			printf("Thread \"%s\" end with exit code %d\n", currentThread->getName(), arg1);
 #ifdef USE_TLB
 #ifdef LRU
 			printf("LRU:\n");
@@ -92,6 +95,105 @@ void ExceptionHandler(ExceptionType which)
 #endif
 			PrintThreadStates();
 			currentThread->Finish();
+			break;
+		}
+		case SC_Create:
+		{
+			int nameaddr = arg1;
+			int count = 0;
+			int value;
+			do
+			{
+				machine->ReadMem(arg1, 1, &value);
+				count++;
+			} while (value != 0);
+			printf("Filename length %d\n", count);
+			arg1 = arg1 - count;
+			char *name = new char[count];
+			for (int i = 0; i < count; ++i)
+			{
+				machine->ReadMem(nameaddr + i, 1, &value);
+				name[i] = (char)value;
+			}
+			fileSystem->Create(name, 256);
+			break;
+		}
+		case SC_Open:
+		{
+			int nameaddr = arg1;
+			int count = 0;
+			int value;
+			do
+			{
+				machine->ReadMem(arg1, 1, &value);
+				count++;
+			} while (value != 0);
+			printf("Filename length %d\n", count);
+			arg1 = arg1 - count;
+			char *name = new char[count];
+			for (int i = 0; i < count; ++i)
+			{
+				machine->ReadMem(nameaddr + i, 1, &value);
+				name[i] = (char)value;
+			}
+			OpenFile *openFile = fileSystem->Open(name);
+			delete[] name;
+			printf("File pointer: %p\n", openFile);
+			if (!openFile)
+				printf("File not existed!\n");
+			machine->WriteRegister(2, (int)openFile);
+			break;
+		}
+		case SC_Close:
+		{
+			OpenFile *openFile = (OpenFile*)arg1;
+			printf("File pointer: %p\n", openFile);
+			delete openFile;
+			break;
+		}
+		case SC_Read:
+		{
+			int nameaddr = arg1;
+			int size = arg2;
+			int fd = arg3;
+			int value;
+			OpenFile *openFile = (OpenFile*)fd;
+			if (!openFile)
+				printf("File not existed!\n")
+			else
+			{
+				char *content = new char[size];
+				openFile->Read(content, size);
+				content[size] = 0;
+				printf("Read \"%s\"\n", content);
+				for (int i = 0; i < size; ++i)
+				{
+					value = (int)content[i];
+					machine->WriteMem(nameaddr + i, 1, value);
+				}
+			}
+			break;
+		}
+		case SC_Write:
+		{
+			int nameaddr = arg1;
+			int size = arg2;
+			int fd = arg3;
+			int value;
+			OpenFile *openFile = (OpenFile*)fd;
+			if (!openFile)
+				printf("File not existed!\n")
+			else
+			{
+				char *content = new char[size];
+				for (int i = 0; i < size; ++i)
+				{
+					machine->ReadMem(nameaddr + i, 1, &value);
+					content[i] = (char)value;
+				}
+				printf("Write \"%s\"\n", content);
+				openFile->Write(content, size);
+			}
 			break;
 		}
 		case SC_Exec:
@@ -180,7 +282,7 @@ void ExceptionHandler(ExceptionType which)
 				}
 				printf("New vpn %d replace vpn %d in ppn %d\n", vpn, LRUid, ptable[LRUid].physicalPage);
 				if (ptable[LRUid].dirty)
-				{					
+				{
 					poffset = ptable[LRUid].physicalPage * PageSize;
 					voffset = ptable[LRUid].virtualPage * PageSize;
 					currentThread->space->swapFile->WriteAt(&(machine->mainMemory[poffset]), PageSize, voffset);
