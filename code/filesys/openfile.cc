@@ -149,7 +149,7 @@ int OpenFile::ReadAt(char *into, int numBytes, int position)
 
     if ((numBytes <= 0) || (position >= fileLength))
     {
-        printf("1\n");
+        synchDisk->rwlock[hdrSector].ReadUnlock();
         return 0; // check request
     }
     if ((position + numBytes) > fileLength)
@@ -198,7 +198,7 @@ int OpenFile::WriteAt(char *from, int numBytes, int position)
             delete freeMap;
             delete freeMapFile;
             printf("Cannot extend!\n");
-            synchDisk->rwlock[hdrSector].ReadUnlock();
+            synchDisk->rwlock[hdrSector].WriteUnlock();
             return 0;
         }
         //printf("%d\n", hdr->dataSectors[NumDirect - 1]);

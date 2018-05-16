@@ -108,6 +108,9 @@ void Scheduler::Run(Thread *nextThread)
     DEBUG('t', "Switching from thread tid = %d \"%s\" to thread tid = %d \"%s\"\n",
           oldThread->getTid(), oldThread->getName(), nextThread->getTid(),
           nextThread->getName());
+    printf("Switching from thread tid = %d \"%s\" to thread tid = %d \"%s\"\n",
+          oldThread->getTid(), oldThread->getName(), nextThread->getTid(),
+          nextThread->getName());
 
     // This is a machine-dependent assembly language routine defined
     // in switch.s.  You may have to think

@@ -25,8 +25,9 @@
 #include "machine.h"
 #include "system.h"
 #include "syscall.h"
+#include "addrspace.h"
 
-void SyscallEnd()
+void SyscallEnd(int type)
 {
 	int pc = machine->ReadRegister(PCReg);
 	machine->WriteRegister(PrevPCReg, pc);
@@ -34,6 +35,8 @@ void SyscallEnd()
 	machine->WriteRegister(PCReg, pc);
 	pc += 4;
 	machine->WriteRegister(NextPCReg, pc);
+	if (type == SC_Yield)
+		currentThread->Yield();
 	return;
 }
 
@@ -60,6 +63,24 @@ void SyscallEnd()
 //	are in machine.h.
 //----------------------------------------------------------------------
 //#define LRU
+
+void fork_func(int arg)
+{
+	machine->WriteRegister(PCReg, arg);
+	machine->WriteRegister(NextPCReg, arg + 4);
+	machine->Run();
+}
+
+void exec_func(int arg)
+{
+	OpenFile *openFile = (OpenFile *)arg;
+
+	currentThread->space = new AddrSpace(openFile);
+	currentThread->space->InitRegisters();
+	currentThread->space->RestoreState();
+	machine->Run();
+}
+
 void ExceptionHandler(ExceptionType which)
 {
 	int type = machine->ReadRegister(2);
@@ -102,20 +123,26 @@ void ExceptionHandler(ExceptionType which)
 			int nameaddr = arg1;
 			int count = 0;
 			int value;
-			do
+			bool suc;
+			while (1)
 			{
-				machine->ReadMem(arg1, 1, &value);
+				suc = machine->ReadMem(nameaddr + count, 1, &value);
+				if (!suc)
+					continue;
 				count++;
-			} while (value != 0);
-			printf("Filename length %d\n", count);
-			arg1 = arg1 - count;
-			char *name = new char[count];
+				if (value == 0)
+					break;
+			}
+			printf("Create: Filename length %d\n", count);
+			char name[count];
 			for (int i = 0; i < count; ++i)
 			{
 				machine->ReadMem(nameaddr + i, 1, &value);
 				name[i] = (char)value;
 			}
+			printf("Create: Filename \"%s\"\n", name);
 			fileSystem->Create(name, 256);
+			printf("Create completed\n");
 			break;
 		}
 		case SC_Open:
@@ -123,32 +150,40 @@ void ExceptionHandler(ExceptionType which)
 			int nameaddr = arg1;
 			int count = 0;
 			int value;
-			do
+			bool suc;
+			// Getname
+			while (1)
 			{
-				machine->ReadMem(arg1, 1, &value);
+				suc = machine->ReadMem(nameaddr + count, 1, &value);
+				if (!suc)
+					continue;
 				count++;
-			} while (value != 0);
-			printf("Filename length %d\n", count);
-			arg1 = arg1 - count;
-			char *name = new char[count];
+				if (value == 0)
+					break;
+			}
+			printf("Open: Filename length %d\n", count);
+			char name[count];
 			for (int i = 0; i < count; ++i)
 			{
 				machine->ReadMem(nameaddr + i, 1, &value);
 				name[i] = (char)value;
 			}
+
+			printf("Open: Filename \"%s\"\n", name);
 			OpenFile *openFile = fileSystem->Open(name);
-			delete[] name;
-			printf("File pointer: %p\n", openFile);
+			printf("Open: File pointer: %p\n", openFile);
 			if (!openFile)
-				printf("File not existed!\n");
+				printf("Open: File not existed!\n");
 			machine->WriteRegister(2, (int)openFile);
+			printf("Open completed\n");
 			break;
 		}
 		case SC_Close:
 		{
-			OpenFile *openFile = (OpenFile*)arg1;
-			printf("File pointer: %p\n", openFile);
+			OpenFile *openFile = (OpenFile *)arg1;
+			printf("Close: File pointer: %p\n", openFile);
 			delete openFile;
+			printf("Close completed\n");
 			break;
 		}
 		case SC_Read:
@@ -156,21 +191,26 @@ void ExceptionHandler(ExceptionType which)
 			int nameaddr = arg1;
 			int size = arg2;
 			int fd = arg3;
+			printf("Read: File pointer: %p\n", fd);
 			int value;
-			OpenFile *openFile = (OpenFile*)fd;
+			OpenFile *openFile = (OpenFile *)fd;
 			if (!openFile)
-				printf("File not existed!\n")
+				printf("Read: File not existed!\n");
 			else
 			{
-				char *content = new char[size];
-				openFile->Read(content, size);
+				char content[size];
+				int numRead = openFile->Read(content, size);
+				printf("Read %d Bytes\n", numRead);
+				ASSERT(numRead == size);
 				content[size] = 0;
 				printf("Read \"%s\"\n", content);
 				for (int i = 0; i < size; ++i)
 				{
-					value = (int)content[i];
+					value = (int)(content[i]);
 					machine->WriteMem(nameaddr + i, 1, value);
 				}
+				machine->WriteRegister(2, numRead);
+				printf("Read completed\n");
 			}
 			break;
 		}
@@ -179,36 +219,132 @@ void ExceptionHandler(ExceptionType which)
 			int nameaddr = arg1;
 			int size = arg2;
 			int fd = arg3;
+			printf("Write: File pointer: %p\n", fd);
 			int value;
-			OpenFile *openFile = (OpenFile*)fd;
+			OpenFile *openFile = (OpenFile *)fd;
 			if (!openFile)
-				printf("File not existed!\n")
+				printf("Write: File not existed!\n");
 			else
 			{
-				char *content = new char[size];
+				char content[size];
 				for (int i = 0; i < size; ++i)
 				{
 					machine->ReadMem(nameaddr + i, 1, &value);
 					content[i] = (char)value;
 				}
 				printf("Write \"%s\"\n", content);
-				openFile->Write(content, size);
+				int numWrite = openFile->Write(content, size);
+				printf("Write %d Bytes\n", numWrite);
+				ASSERT(numWrite == size);
+				printf("Write completed\n");
 			}
 			break;
 		}
 		case SC_Exec:
 		{
-			DEBUG('a', "Exec call\n");
+			printf("Exec call\n");
+			int nameaddr = arg1;
+			int count = 0;
+			bool suc;
+			int value;
+			while (1)
+			{
+				suc = machine->ReadMem(nameaddr + count, 1, &value);
+				if (!suc)
+					continue;
+				count++;
+				if (value == 0)
+					break;
+			}
+			printf("Exec: Filename length %d\n", count);
+			char name[count];
+			for (int i = 0; i < count; ++i)
+			{
+				machine->ReadMem(nameaddr + i, 1, &value);
+				name[i] = (char)value;
+			}
 
+			printf("Exec: Filename \"%s\"\n", name);
+			bool alloc = false;
+			Thread *newThread = new Thread("child exec");
+			for (int i = 0; i < MAX_THREADS; ++i)
+			{
+				if (currentThread->childThread[i] == NULL)
+				{
+					currentThread->childThread[i] = newThread;
+					alloc = true;
+					break;
+				}
+			}
+			if (!alloc)
+			{
+				printf("Exec: Child thread of thread %d \"%s\" full\n", currentThread->getTid(), currentThread->getName());
+				break;
+			}
+			OpenFile *openFile = fileSystem->Open(name);
+			newThread->fatherThread = currentThread;
+			machine->WriteRegister(2, (int)newThread);
+			newThread->Fork(exec_func, (void *)openFile);
+			printf("Exec complete\n");
 			break;
 		}
 		case SC_Fork:
 		{
+			printf("Fork call\n");
+			int nextPC = arg1;
+			bool alloc = false;
+			AddrSpace *newSpace = new AddrSpace(currentThread->space);
+			Thread *newThread = new Thread("child fork");
+			for (int i = 0; i < MAX_THREADS; ++i)
+			{
+				if (currentThread->childThread[i] == NULL)
+				{
+					currentThread->childThread[i] = newThread;
+					alloc = true;
+					break;
+				}
+			} //#define LRU
+			if (!alloc)
+			{
+				printf("Fork: Child thread of thread %d \"%s\" full\n", currentThread->getTid(), currentThread->getName());
+				break;
+			}
+			newThread->fatherThread = currentThread;
+			newThread->space = newSpace;
+			newThread->SaveUserState();
+			newThread->Fork(fork_func, (void *)nextPC);
+			printf("Fork complete\n");
+			break;
+		}
+		case SC_Yield:
+		{
+			printf("Yield call\n");
+			break;
+		}
+		case SC_Join:
+		{
+			printf("Join call\n");
+			Thread *cThread = (Thread *)arg1;
+			int num;
+			bool found = false;
+			num = currentThread->FindChildID(cThread);
+			if (num != -1)
+			{
+				printf("Join: thread cannot found\n");
+			}
+			else
+			{
+				while (currentThread->childThread[num] != NULL)
+				{
+					currentThread->Yield();
+				}
+				printf("Join: child thread end\n");
+			}
 			break;
 		}
 		default:;
 		}
-		SyscallEnd();
+		SyscallEnd(type);
 	}
 	/* lab4 begin */
 	else if (which == PageFaultException)
@@ -280,7 +416,7 @@ void ExceptionHandler(ExceptionType which)
 						LRUid = i;
 					}
 				}
-				printf("New vpn %d replace vpn %d in ppn %d\n", vpn, LRUid, ptable[LRUid].physicalPage);
+				//printf("New vpn %d replace vpn %d in ppn %d\n", vpn, LRUid, ptable[LRUid].physicalPage);
 				if (ptable[LRUid].dirty)
 				{
 					poffset = ptable[LRUid].physicalPage * PageSize;
@@ -290,7 +426,7 @@ void ExceptionHandler(ExceptionType which)
 				ptable[LRUid].valid = FALSE;
 				ppn = ptable[LRUid].physicalPage;
 			}
-			printf("Place vpn %d in ppn %d\n", vpn, ppn);
+			//printf("Place vpn %d in ppn %d\n", vpn, ppn);
 			ptable[vpn].virtualPage = vpn;
 			ptable[vpn].physicalPage = ppn;
 			ptable[vpn].dirty = FALSE;

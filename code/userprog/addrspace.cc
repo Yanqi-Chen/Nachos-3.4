@@ -193,7 +193,7 @@ void AddrSpace::InitRegisters()
 
 void AddrSpace::SaveState()
 {
-    printf("Clear TLB or Pagetable of thread \"%s\".\n", currentThread->getName());
+    //printf("Clear TLB or Pagetable of thread \"%s\".\n", currentThread->getName());
 #ifdef USE_TLB
     for (int i = 0; i < TLBSize; i++)
         machine->tlb[i].valid = FALSE;
@@ -210,7 +210,7 @@ void AddrSpace::SaveState()
     }
     machine->memMap->Refresh();
 #endif
-    printf("Clear complete.\n");
+    //printf("Clear complete.\n");
 }
 
 //----------------------------------------------------------------------
@@ -224,8 +224,8 @@ void AddrSpace::SaveState()
 void AddrSpace::RestoreState()
 {
 #ifndef USE_TLB
-    printf("Restore state of thread \"%s\"\n", currentThread->getName());
-    PrintThreadStates();
+    //printf("Restore state of thread \"%s\"\n", currentThread->getName());
+    //PrintThreadStates();
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
     int ppn;
@@ -246,6 +246,6 @@ void AddrSpace::RestoreState()
         pageTable[i].noSwap = TRUE;
         swapFile->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, i * PageSize);
     }
-    printf("Restore complete.\n");
+    //printf("Restore complete.\n");
 #endif
 }

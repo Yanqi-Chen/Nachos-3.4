@@ -159,6 +159,13 @@ Initialize(int argc, char **argv)
     currentThread = new Thread("main");		
     currentThread->setStatus(RUNNING);
 
+#ifdef USER_PROGRAM
+    for (int i = 0; i < MAX_THREADS; ++i)
+    {
+        currentThread->childThread[i] = NULL;
+    }
+    currentThread->fatherThread = NULL;
+#endif
     interrupt->Enable();
     CallOnUserAbort(Cleanup);			// if user hits ctl-C
     
