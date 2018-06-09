@@ -55,7 +55,7 @@ class List {
 					// on the list
     unsigned int NumInList() { return numInList;};
 
-    bool IsEmpty();		// is the list empty? 
+    bool IsEmpty();		// is the list empty?
     
 
     // Routines to put/get items on/off list in order (sorted by key)

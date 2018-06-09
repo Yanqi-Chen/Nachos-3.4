@@ -12,8 +12,8 @@
 #include "copyright.h"
 #include "system.h"
 #include "elevatortest.h"
-#include "synch.h"
-#include <stdio.h>  
+#include "thread.h"
+#include "synch.h" 
 
 // testnum is set in main.cc
 int testnum = 1;  
@@ -262,6 +262,39 @@ void rwlockTest()
 /* lab3 end */
 
 
+/* lab8 begin */
+void sendm(int from)
+{
+	char message[30];
+	sprintf(message, "Hello from sender %d", from);
+	int num = currentThread->SendM(from + 2, message, 30);
+	if (num < 0)
+		printf("Send failed\n");
+	currentThread->Yield();
+}
+void receivem(int to)
+{
+	char message[30];
+	currentThread->ReceiveM(to, message, 30);
+	printf("Receiver %d receive \"%s\"\n", to, message);
+	currentThread->Yield();
+}
+void messageTest()
+{
+	Thread *sdr[2], *recvr[2];
+	sdr[0] = new Thread("sender 1");
+	sdr[1] = new Thread("sender 2");
+	recvr[0] = new Thread("receiver 1");
+	recvr[1] = new Thread("receiver 2");
+	for (int i = 1; i <= 2; ++i)
+	{
+		sdr[i - 1]->Fork(sendm, (void*)i);
+		recvr[i - 1]->Fork(receivem, (void*)i);
+	}
+	currentThread->Yield();
+}
+/* lab8 end */
+
 //----------------------------------------------------------------------
 // ThreadTest
 // 	Invoke a test routine.
@@ -300,6 +333,11 @@ ThreadTest()
 	case 6:
 	{
 		rwlockTest();
+		break;
+	}
+	case 7:
+	{
+		messageTest();
 		break;
 	}
 	default:

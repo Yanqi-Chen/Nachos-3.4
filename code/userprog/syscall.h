@@ -29,6 +29,10 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
+#define SC_Ls		11
+#define SC_Pwd		12
+#define SC_Chdir	13
+#define SC_Ps		14
 
 #ifndef IN_ASM
 
@@ -122,7 +126,15 @@ void Fork(void (*func)());
 /* Yield the CPU to another runnable thread, whether in this address space 
  * or not. 
  */
-void Yield();		
+void Yield();
+
+void Ls();	
+
+void Pwd();	
+
+int Chdir(char *name);
+
+void Ps();
 
 #endif /* IN_ASM */
 

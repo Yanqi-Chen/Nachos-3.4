@@ -47,6 +47,9 @@ extern Pipe _pipe;
 extern void ReadPipe(char *into, int numBytes);
 extern void WritePipe(char *into, int numBytes);
 /* lab5 begin */
+/* lab8 begin */
+extern int messageCnt[MAX_THREADS];
+/* lab8 end */
 
 #ifdef USER_PROGRAM
 #include "machine.h"

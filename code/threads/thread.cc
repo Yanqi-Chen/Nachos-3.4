@@ -27,6 +27,24 @@
 /* lab1 begin */
 int Thread::cntThreads = 0;
 /* lab1 end */
+
+/* lab8 begin */
+class Message
+{
+  public:
+    Message()
+    {
+        valid = false;
+        memset(buffer, 0, sizeof(buffer));
+        rwlock = new RWlock();
+    }
+    bool valid;
+    int fromID;
+    char buffer[MAX_MESSAGE_SIZE];
+    RWlock *rwlock;
+};
+Message messageQueue[MAX_THREADS][MAX_MESSAGE_CNT];
+/* lab8 end */
 //----------------------------------------------------------------------
 // Thread::Thread
 // 	Initialize a thread control block, so that we can then call
@@ -326,6 +344,66 @@ void Thread::StackAllocate(VoidFunctionPtr func, void *arg)
     machineState[InitialPCState] = (int *)func;
     machineState[InitialArgState] = arg;
     machineState[WhenDonePCState] = (int *)ThreadFinish;
+}
+
+int Thread::SendM(int tid, char *buffer, int size)
+{
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    int curr_tid = currentThread->getTid();
+    if (size > MAX_MESSAGE_SIZE)
+    {
+        printf("Message too large to send!\n");
+        (void)interrupt->SetLevel(oldLevel);
+        return -1;
+    }
+    int cnt = messageCnt[tid];
+    messageQueue[tid][cnt].rwlock->WriteLock();
+    if (cnt >= MAX_MESSAGE_CNT)
+    {
+        printf("Too much message!\n");
+        messageQueue[tid][cnt].rwlock->WriteUnlock();
+        (void)interrupt->SetLevel(oldLevel);
+        return -1;
+    }
+    messageCnt[tid]++;
+    messageQueue[tid][cnt].valid = true;
+    messageQueue[tid][cnt].fromID = curr_tid;
+    memcpy(messageQueue[tid][cnt].buffer, buffer, size);
+    messageQueue[tid][cnt].rwlock->WriteUnlock();
+    printf("Send from Thread %d to %d complete\n", curr_tid, tid);
+    (void)interrupt->SetLevel(oldLevel);
+    return 0;
+}
+
+void Thread::ReceiveM(int tid, char *buffer, int size)
+{
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);
+    int curr_tid = currentThread->getTid();
+    int found_id;
+    while (messageCnt[curr_tid] == 0)
+    {
+        currentThread->Yield();
+    }
+
+    for (int i = MAX_MESSAGE_CNT - 1; i >= 0; --i)
+    {
+        if (messageQueue[curr_tid][i].valid && messageQueue[curr_tid][i].fromID == tid)
+        {
+            messageQueue[curr_tid][i].rwlock->ReadLock();
+            messageQueue[curr_tid][i].valid = false;
+            memcpy(buffer, messageQueue[curr_tid][i].buffer, size);
+            messageCnt[curr_tid]--;
+            messageQueue[curr_tid][i].rwlock->ReadUnlock();
+            found_id = i;
+            break;
+        }
+    }
+    for (int i = found_id; i < MAX_MESSAGE_CNT - 1; ++i)
+    {
+        messageQueue[curr_tid][i] = messageQueue[curr_tid][i + 1];
+    }
+    printf("Receive from Thread %d to %d complete\n", tid, curr_tid);
+    (void)interrupt->SetLevel(oldLevel);
 }
 
 #ifdef USER_PROGRAM

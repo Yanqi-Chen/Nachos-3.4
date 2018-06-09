@@ -191,14 +191,30 @@ void ExceptionHandler(ExceptionType which)
 			int nameaddr = arg1;
 			int size = arg2;
 			int fd = arg3;
-			printf("Read: File pointer: %p\n", fd);
+			// printf("Read: File pointer: %p\n", fd);
 			int value;
+			char content[size];
+
+			// shell input
+			if (fd == ConsoleInput)
+			{
+				for (int i = 0; i < size; ++i)
+					content[i] = getchar();
+
+				for (int i = 0; i < size; ++i)
+				{
+					value = (int)(content[i]);
+					machine->WriteMem(nameaddr + i, 1, value);
+				}
+				break;
+			}
+
 			OpenFile *openFile = (OpenFile *)fd;
 			if (!openFile)
 				printf("Read: File not existed!\n");
 			else
 			{
-				char content[size];
+				
 				int numRead = openFile->Read(content, size);
 				printf("Read %d Bytes\n", numRead);
 				ASSERT(numRead == size);
@@ -219,14 +235,26 @@ void ExceptionHandler(ExceptionType which)
 			int nameaddr = arg1;
 			int size = arg2;
 			int fd = arg3;
-			printf("Write: File pointer: %p\n", fd);
+			// printf("Write: File pointer: %p\n", fd);
 			int value;
+			char content[size];
+
+			// shell output
+			if (fd == ConsoleOutput)
+			{
+				for (int i = 0; i < size; ++i)
+				{
+					machine->ReadMem(nameaddr + i, 1, &value);
+					putchar((char)value);
+				}
+				break;
+			}
+
 			OpenFile *openFile = (OpenFile *)fd;
 			if (!openFile)
 				printf("Write: File not existed!\n");
 			else
 			{
-				char content[size];
 				for (int i = 0; i < size; ++i)
 				{
 					machine->ReadMem(nameaddr + i, 1, &value);
@@ -342,6 +370,48 @@ void ExceptionHandler(ExceptionType which)
 			}
 			break;
 		}
+		/* lab7 begin */
+		case SC_Ls:
+		{
+			system("ls");
+			break;
+		}
+		case SC_Pwd:
+		{
+			system("pwd");
+			break;
+		}
+		case SC_Chdir:
+		{
+			int nameaddr = arg1;
+			int count = 0;
+			bool suc;
+			int value;
+			while (1)
+			{
+				suc = machine->ReadMem(nameaddr + count, 1, &value);
+				if (!suc)
+					continue;
+				count++;
+				if (value == 0)
+					break;
+			}
+			char name[count];
+			for (int i = 0; i < count; ++i)
+			{
+				machine->ReadMem(nameaddr + i, 1, &value);
+				name[i] = (char)value;
+			}
+			int retVal = chdir(name);
+			machine->WriteRegister(2, retVal);
+			break;
+		}
+		case SC_Ps:
+		{
+			PrintThreadStates();
+			break;
+		}
+		/* lab7 end */
 		default:;
 		}
 		SyscallEnd(type);

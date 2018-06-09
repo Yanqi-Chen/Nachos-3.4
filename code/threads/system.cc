@@ -22,7 +22,6 @@ Timer *timer;				// the hardware timer device,
 /* lab1 begin */
 ThreadInfo tInfo[MAX_THREADS];
 char tStatus[4][13] = { "JUST_CREATED", "RUNNING", "READY", "BLOCKED" };
-#define MAX_THREADS 128
 int UID = 1000;
 /* lab1 end */
 /* lab4 begin */
@@ -32,6 +31,9 @@ int missCnt = 0;
 /* lab5 begin */
 Pipe _pipe;
 /* lab5 begin */
+/* lab8 begin */ 
+int messageCnt[MAX_THREADS];
+/* lab8 end */
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -95,6 +97,7 @@ Initialize(int argc, char **argv)
     bool randomYield = FALSE;
     
     memset(tInfo, 0, sizeof(tInfo));
+    memset(messageCnt, 0, sizeof(messageCnt));
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program

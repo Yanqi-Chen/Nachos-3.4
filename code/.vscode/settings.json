@@ -3,6 +3,7 @@
 	"C_Cpp.dimInactiveRegions": false,
 	"files.associations": {
 		"*.dep": "makefile",
-		"syscall.h": "c"
+		"syscall.h": "c",
+		"cstdlib": "cpp"
 	}
 }

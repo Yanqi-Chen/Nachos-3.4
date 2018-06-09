@@ -39,12 +39,17 @@
 
 #include "copyright.h"
 #include "utility.h"
+#include "synch.h"
+
+
+#define MAX_THREADS 128
+#define MAX_MESSAGE_SIZE 128
+#define MAX_MESSAGE_CNT 128
 
 #ifdef USER_PROGRAM
 #include "machine.h"
 #include "addrspace.h"
 
-#define MAX_THREADS 128
 #endif
 
 // CPU register state to be saved on context switch.
@@ -108,6 +113,10 @@ class Thread
 	void setStatus(ThreadStatus st);
 	char *getName() { return (name); }
 	void Print() { printf("%s, ", name); }
+	/* lab8 begin */
+	int SendM(int tid, char *buffer, int size);
+	void ReceiveM(int tid, char *buffer, int size);
+	/* lab8 end *
 	/* lab1 begin */
 	static int cntThreads;
 	int getUid() { return (uid); }
